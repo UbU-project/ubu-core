@@ -1,0 +1,19 @@
+[package]
+name = "ubu_core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Shared Rust domain foundation for UbU Phase 1."
+repository = "https://github.com/UbU-project/ubu-core"
+build = "build.rs"
+
+[dependencies]
+regex = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+uuid = { version = "1.8", features = ["v7"] }
+
+[dev-dependencies]
+tempfile = "3.10"

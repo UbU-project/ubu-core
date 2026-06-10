@@ -1,0 +1,11 @@
+name: Codegen Task
+description: Track code generation or schema compatibility work.
+title: "[codegen] "
+labels: ["codegen"]
+body:
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+    validations:
+      required: true

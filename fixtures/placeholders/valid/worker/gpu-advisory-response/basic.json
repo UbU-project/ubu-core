@@ -1,0 +1,10 @@
+{
+  "requestId": "gpu-req-1",
+  "respondedAt": "2026-06-10T14:31:00Z",
+  "recommendation": "defer",
+  "rationale": "Capacity is advisory only for Phase 1.",
+  "estimatedCost": {
+    "currency": "USD",
+    "amountMinor": 2500
+  }
+}

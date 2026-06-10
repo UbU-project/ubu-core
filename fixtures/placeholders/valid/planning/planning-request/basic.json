@@ -1,0 +1,13 @@
+{
+  "requestId": "req-1",
+  "requestedAt": "2026-06-10T14:30:00Z",
+  "authoritySource": "user",
+  "taskSpecs": [
+    {
+      "title": "Add schemas",
+      "estimate": {
+        "seconds": 3600
+      }
+    }
+  ]
+}

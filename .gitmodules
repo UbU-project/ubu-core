@@ -1,0 +1,3 @@
+[submodule "schemas-ref"]
+	path = schemas-ref
+	url = https://github.com/UbU-project/ubu-schemas

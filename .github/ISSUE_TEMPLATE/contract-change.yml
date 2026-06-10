@@ -1,0 +1,11 @@
+name: Contract Change
+description: Propose a schema or Rust contract change.
+title: "[contract] "
+labels: ["contract"]
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: Change
+    validations:
+      required: true

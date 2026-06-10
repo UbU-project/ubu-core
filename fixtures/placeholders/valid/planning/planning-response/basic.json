@@ -1,0 +1,19 @@
+{
+  "requestId": "req-1",
+  "respondedAt": "2026-06-10T14:31:00Z",
+  "plan": {
+    "id": "plan_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+    "status": "candidate",
+    "steps": [
+      {
+        "index": 0,
+        "summary": "Add schema files"
+      }
+    ],
+    "createdAt": "2026-06-10T14:31:00Z"
+  },
+  "validation": {
+    "valid": true,
+    "diagnostics": []
+  }
+}
