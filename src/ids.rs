@@ -11,8 +11,7 @@ use crate::errors::UbuError;
 use crate::id_registry::{object_type_for_prefix, prefix_for, ObjectType};
 
 static ID_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(task_|obj_|plan_|log_|xref_|comp_|snap_|worker_|proj_|cal_)[0-9a-f]{12}7[0-9a-f]{3}[89ab][0-9a-f]{15}$")
-        .expect("valid UbU id regex")
+    Regex::new(r"^[a-z]+_[0-9a-f]{12}7[0-9a-f]{3}[89ab][0-9a-f]{15}$").expect("valid UbU id regex")
 });
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -23,6 +22,12 @@ impl UbuId {
         let value = value.into();
         if !ID_RE.is_match(&value) {
             return Err(UbuError::InvalidId { value });
+        }
+        let prefix = id_prefix(&value).expect("validated id has prefix delimiter");
+        if object_type_for_prefix(prefix).is_none() {
+            return Err(UbuError::UnknownIdPrefix {
+                prefix: prefix.to_owned(),
+            });
         }
         Ok(Self(value))
     }
@@ -41,12 +46,8 @@ impl UbuId {
     }
 
     pub fn object_type(&self) -> ObjectType {
-        let prefix = self
-            .0
-            .split_once('_')
-            .map(|(head, _)| format!("{head}_"))
-            .expect("validated id has prefix delimiter");
-        object_type_for_prefix(&prefix).expect("validated id has registered prefix")
+        object_type_for_prefix(id_prefix(&self.0).expect("validated id has prefix delimiter"))
+            .expect("validated id has registered prefix")
     }
 
     pub fn require_object_type(&self, expected: ObjectType) -> crate::Result<()> {
@@ -61,6 +62,11 @@ impl UbuId {
             actual: actual.as_str(),
         })
     }
+}
+
+fn id_prefix(value: &str) -> Option<&str> {
+    let delimiter = value.find('_')?;
+    Some(&value[..=delimiter])
 }
 
 impl fmt::Display for UbuId {

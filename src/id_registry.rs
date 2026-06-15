@@ -12,6 +12,12 @@ pub enum ObjectType {
     AutomationWorker,
     ProjectionPreview,
     Calendar,
+    Preference,
+    Container,
+    UniverseState,
+    Identity,
+    Relationship,
+    ExternalEvent,
 }
 
 impl ObjectType {
@@ -27,6 +33,12 @@ impl ObjectType {
             Self::AutomationWorker => "AutomationWorker",
             Self::ProjectionPreview => "ProjectionPreview",
             Self::Calendar => "Calendar",
+            Self::Preference => "Preference",
+            Self::Container => "Container",
+            Self::UniverseState => "UniverseState",
+            Self::Identity => "Identity",
+            Self::Relationship => "Relationship",
+            Self::ExternalEvent => "ExternalEvent",
         }
     }
 }
@@ -78,6 +90,30 @@ pub const PREFIX_REGISTRY: &[PrefixEntry] = &[
         prefix: "cal_",
         object_type: ObjectType::Calendar,
     },
+    PrefixEntry {
+        prefix: "pref_",
+        object_type: ObjectType::Preference,
+    },
+    PrefixEntry {
+        prefix: "container_",
+        object_type: ObjectType::Container,
+    },
+    PrefixEntry {
+        prefix: "ustate_",
+        object_type: ObjectType::UniverseState,
+    },
+    PrefixEntry {
+        prefix: "identity_",
+        object_type: ObjectType::Identity,
+    },
+    PrefixEntry {
+        prefix: "rel_",
+        object_type: ObjectType::Relationship,
+    },
+    PrefixEntry {
+        prefix: "xevent_",
+        object_type: ObjectType::ExternalEvent,
+    },
 ];
 
 pub fn prefix_for(object_type: ObjectType) -> &'static str {
@@ -93,6 +129,11 @@ pub fn object_type_for_prefix(prefix: &str) -> Option<ObjectType> {
         .iter()
         .find(|entry| entry.prefix == prefix)
         .map(|entry| entry.object_type)
+}
+
+pub fn object_type_from_id(value: &str) -> Option<ObjectType> {
+    let delimiter = value.find('_')?;
+    object_type_for_prefix(&value[..=delimiter])
 }
 
 pub fn prefix_entries() -> &'static [PrefixEntry] {
