@@ -2,9 +2,9 @@
   "id": "log_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
   "subject": {
     "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
-    "objectType": "Task"
+    "object_type": "Task"
   },
   "message": "Fixture validation added.",
-  "loggedAt": "2026-06-10T14:30:00Z",
-  "authoritySource": "system"
+  "logged_at": "2026-06-10T14:30:00Z",
+  "authority_source": "system"
 }

@@ -5,7 +5,6 @@ use crate::policy_summary::PolicySummary;
 use crate::UbuId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Compartment {
     pub id: UbuId,
     pub label: CompartmentLabel,

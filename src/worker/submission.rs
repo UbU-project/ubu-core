@@ -5,7 +5,6 @@ use crate::time::UbuTimestamp;
 use crate::worker::authority::WorkerAuthority;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct WorkerSubmission {
     pub submission_id: String,
     pub submitted_at: UbuTimestamp,
@@ -22,7 +21,6 @@ pub enum WorkerResultStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct WorkerResult {
     pub submission_id: String,
     pub completed_at: UbuTimestamp,

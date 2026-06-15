@@ -6,7 +6,6 @@ use crate::serde_helpers::Duration;
 use crate::time::UbuTimestamp;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct TaskSpec {
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -14,8 +13,8 @@ pub struct TaskSpec {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PlanningRequest {
+    pub schema_version: String,
     pub request_id: String,
     pub requested_at: UbuTimestamp,
     pub authority_source: AuthoritySource,

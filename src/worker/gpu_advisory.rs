@@ -4,7 +4,6 @@ use crate::serde_helpers::{Duration, Money};
 use crate::time::UbuTimestamp;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct GpuAdvisoryRequest {
     pub request_id: String,
     pub requested_at: UbuTimestamp,
@@ -25,7 +24,6 @@ pub enum GpuAdvisoryRecommendation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct GpuAdvisoryResponse {
     pub request_id: String,
     pub responded_at: UbuTimestamp,

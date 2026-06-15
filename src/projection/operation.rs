@@ -13,7 +13,6 @@ pub enum ProjectionOperationKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ProjectionOperation {
     pub operation_id: String,
     pub kind: ProjectionOperationKind,

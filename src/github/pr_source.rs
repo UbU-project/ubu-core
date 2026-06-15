@@ -11,7 +11,6 @@ pub enum GitHubPrState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct GitHubPrSource {
     pub repository: String,
     pub number: u64,

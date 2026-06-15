@@ -1,14 +1,19 @@
 {
   "id": "xref_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
   "source": {
-    "sourceKind": "github_issue",
-    "sourceId": "UbU-project/ubu-schemas#1",
+    "source_kind": "github_issue",
+    "source_id": "UbU-project/ubu-schemas#1",
     "url": "https://github.com/UbU-project/ubu-schemas/issues/1"
   },
   "title": "Initial schema task",
-  "observedAt": "2026-06-10T14:30:00Z",
+  "observed_at": "2026-06-10T14:30:00Z",
   "provenance": {
-    "createdAt": "2026-06-10T14:31:00Z",
-    "authoritySource": "delegated"
+    "created_at": "2026-06-10T14:31:00Z",
+    "authority_source": "delegated",
+    "source": {
+      "source_kind": "github_issue",
+      "source_id": "UbU-project/ubu-schemas#1",
+      "url": "https://github.com/UbU-project/ubu-schemas/issues/1"
+    }
   }
 }

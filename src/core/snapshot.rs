@@ -5,7 +5,6 @@ use crate::time::UbuTimestamp;
 use crate::UbuId;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Snapshot {
     pub id: UbuId,
     pub captured_at: UbuTimestamp,

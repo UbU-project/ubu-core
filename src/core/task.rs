@@ -7,16 +7,13 @@ use crate::time::UbuTimestamp;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskStatus {
-    Proposed,
-    Ready,
-    Blocked,
-    InProgress,
+    Active,
     Completed,
-    Canceled,
+    Failed,
+    Moot,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Task {
     pub id: UbuId,
     pub title: String,

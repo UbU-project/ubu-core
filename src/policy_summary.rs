@@ -11,7 +11,6 @@ pub enum Legitimization {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PolicySummary {
     pub legitimization: Legitimization,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

@@ -5,7 +5,6 @@ use crate::source_ref::SourceRef;
 use crate::time::UbuTimestamp;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ExternalEvent {
     pub source: SourceRef,
     pub event_type: String,

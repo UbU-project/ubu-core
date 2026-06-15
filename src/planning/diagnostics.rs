@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct SkeletonFailureDiagnostic {
     pub code: String,
     pub message: String,
@@ -10,7 +9,6 @@ pub struct SkeletonFailureDiagnostic {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ValidationResult {
     pub valid: bool,
     pub diagnostics: Vec<SkeletonFailureDiagnostic>,

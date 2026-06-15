@@ -20,7 +20,6 @@ pub enum OperationResultStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct OperationResult {
     pub operation_id: String,
     pub status: OperationResultStatus,
@@ -29,7 +28,6 @@ pub struct OperationResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ProjectionResult {
     pub preview_id: UbuId,
     pub applied_at: UbuTimestamp,

@@ -14,7 +14,6 @@ pub enum PlanStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Plan {
     pub id: UbuId,
     pub status: PlanStatus,

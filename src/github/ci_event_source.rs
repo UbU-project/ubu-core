@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use crate::time::UbuTimestamp;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct GitHubCiEventSource {
     pub repository: String,
     pub run_id: u64,

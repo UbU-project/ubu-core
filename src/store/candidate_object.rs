@@ -5,7 +5,6 @@ use crate::authority::AuthoritySource;
 use crate::time::UbuTimestamp;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct CandidateObject {
     pub candidate_id: String,
     pub object_type: String,

@@ -13,7 +13,6 @@ pub enum ObjectiveStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Objective {
     pub id: UbuId,
     pub title: String,

@@ -10,7 +10,6 @@ pub enum IdentityKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Identity {
     pub subject_key: String,
     pub kind: IdentityKind,

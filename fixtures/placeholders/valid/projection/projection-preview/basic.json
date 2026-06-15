@@ -1,19 +1,19 @@
 {
   "id": "proj_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
-  "createdAt": "2026-06-10T14:30:00Z",
+  "created_at": "2026-06-10T14:30:00Z",
   "operations": [
     {
-      "operationId": "op-1",
+      "operation_id": "op-1",
       "kind": "comment",
       "target": {
-        "sourceKind": "github_issue",
-        "sourceId": "UbU-project/ubu-schemas#1"
+        "source_kind": "github_issue",
+        "source_id": "UbU-project/ubu-schemas#1"
       },
       "summary": "Post progress update"
     }
   ],
-  "policySummary": {
+  "policy_summary": {
     "legitimization": "accepted",
-    "checkedAt": "2026-06-10T14:30:01Z"
+    "checked_at": "2026-06-10T14:30:01Z"
   }
 }

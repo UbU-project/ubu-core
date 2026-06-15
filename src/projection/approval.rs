@@ -5,7 +5,6 @@ use crate::time::UbuTimestamp;
 use crate::UbuId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ProjectionApproval {
     pub preview_id: UbuId,
     pub approved: bool,

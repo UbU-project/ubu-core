@@ -1,12 +1,12 @@
 {
-  "requestId": "gpu-req-1",
-  "requestedAt": "2026-06-10T14:30:00Z",
+  "request_id": "gpu-req-1",
+  "requested_at": "2026-06-10T14:30:00Z",
   "workload": "schema validation benchmark",
-  "estimatedDuration": {
+  "estimated_duration": {
     "seconds": 900
   },
-  "maxCost": {
+  "max_cost": {
     "currency": "USD",
-    "amountMinor": 5000
+    "amount_minor": 5000
   }
 }

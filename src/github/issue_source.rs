@@ -10,7 +10,6 @@ pub enum GitHubIssueState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct GitHubIssueSource {
     pub repository: String,
     pub number: u64,

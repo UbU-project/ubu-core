@@ -9,7 +9,6 @@ pub enum Severity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ExplanationFragment {
     pub text: String,
     pub severity: Severity,

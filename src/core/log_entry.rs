@@ -6,7 +6,6 @@ use crate::time::UbuTimestamp;
 use crate::UbuId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LogEntry {
     pub id: UbuId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
