@@ -24,6 +24,6 @@ pub use objective::{Objective, ObjectiveStatus};
 pub use preference::Preference;
 pub use relationship::Relationship;
 pub use snapshot::Snapshot;
-pub use task::{Task, TaskStatus};
+pub use task::{MootReasonCode, Task, TaskStatus};
 pub use universe_state::UniverseState;
 pub use work_item::WorkItem;

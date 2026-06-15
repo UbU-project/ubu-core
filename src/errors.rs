@@ -22,4 +22,10 @@ pub enum UbuError {
 
     #[error("invalid compartment label `{value}`")]
     InvalidCompartmentLabel { value: String },
+
+    #[error("task status `moot` requires moot_reason_code")]
+    MissingMootReasonCode,
+
+    #[error("task status `{status}` forbids moot_reason_code")]
+    UnexpectedMootReasonCode { status: &'static str },
 }
