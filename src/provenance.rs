@@ -12,4 +12,6 @@ pub struct Provenance {
     pub authority_source: AuthoritySource,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source: Option<SourceRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_refs: Option<Vec<SourceRef>>,
 }
