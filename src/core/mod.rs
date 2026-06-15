@@ -19,11 +19,14 @@ pub use container::Container;
 pub use external_event::ExternalEvent;
 pub use external_reference::ExternalReference;
 pub use identity::{Identity, IdentityKind};
-pub use log_entry::LogEntry;
+pub use log_entry::{CompartmentBoundaryDecidedPayload, LogEntry, LogEventType, PolicyMember};
 pub use objective::{Objective, ObjectiveStatus};
 pub use preference::Preference;
 pub use relationship::Relationship;
-pub use snapshot::Snapshot;
+pub use snapshot::{
+    AffectDimension, AffectDimensionObservation, AffectDimensions, AffectDirection, AffectScale,
+    AffectSourceKind, AffectThreshold, Snapshot, SnapshotAffect,
+};
 pub use task::{MootReasonCode, Task, TaskStatus};
 pub use universe_state::UniverseState;
 pub use work_item::WorkItem;

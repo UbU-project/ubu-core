@@ -1,18 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 use crate::planning::diagnostics::ValidationResult;
-use crate::planning::explanation::ExplanationFragment;
 use crate::planning::plan::Plan;
-use crate::time::UbuTimestamp;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlanningResponse {
+pub struct RepairResponse {
     pub schema_version: String,
     pub request_id: String,
-    pub responded_at: UbuTimestamp,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub plan: Option<Plan>,
+    pub repaired_plan: Option<Plan>,
     pub validation: ValidationResult,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub explanations: Vec<ExplanationFragment>,
 }

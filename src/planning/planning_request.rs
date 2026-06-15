@@ -1,13 +1,18 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::authority::AuthoritySource;
+use crate::core::{Objective, UniverseState};
 use crate::serde_helpers::Duration;
 use crate::time::UbuTimestamp;
+use crate::UbuId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TaskSpec {
     pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub objective_id: Option<UbuId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub estimate: Option<Duration>,
 }
@@ -18,8 +23,10 @@ pub struct PlanningRequest {
     pub request_id: String,
     pub requested_at: UbuTimestamp,
     pub authority_source: AuthoritySource,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub objective: Option<Objective>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub task_specs: Vec<TaskSpec>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub context: Option<Value>,
+    pub state: Option<UniverseState>,
 }

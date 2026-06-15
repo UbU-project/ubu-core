@@ -4,4 +4,4 @@ pub mod recalculation_trigger;
 
 pub use admitted_object::AdmittedObject;
 pub use candidate_object::CandidateObject;
-pub use recalculation_trigger::RecalculationTrigger;
+pub use recalculation_trigger::{RecalculationTrigger, TriggerType};

@@ -3,9 +3,11 @@ use serde::Serialize;
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
-use ubu_core::core::{ExternalReference, LogEntry, Objective, Task};
-use ubu_core::planning::{PlanningRequest, PlanningResponse};
+use ubu_core::core::{ExternalReference, LogEntry, Objective, Snapshot, Task};
+use ubu_core::planning::{PlanningRequest, PlanningResponse, RepairRequest, RepairResponse};
+use ubu_core::policy_summary::PolicySummary;
 use ubu_core::projection::ProjectionPreview;
+use ubu_core::store::RecalculationTrigger;
 
 fn fixture(relative: &str) -> String {
     let path = PathBuf::from(env!("UBU_SCHEMAS_FIXTURES")).join(relative);
@@ -30,7 +32,14 @@ fn serde_round_trips_core_and_planning_types() {
     round_trip::<Objective>("valid/core/objective/basic.json");
     round_trip::<ExternalReference>("valid/core/external-reference/basic.json");
     round_trip::<LogEntry>("valid/core/log-entry/basic.json");
+    round_trip::<LogEntry>("valid/core/log-entry/compartment-boundary-decided.json");
+    round_trip::<Snapshot>("valid/core/snapshot/bootstrap-defaults.json");
+    round_trip::<Snapshot>("valid/core/snapshot/live-observation.json");
+    round_trip::<PolicySummary>("valid/common/policy-summary/guardrail-members.json");
     round_trip::<PlanningRequest>("valid/planning/planning-request/basic.json");
     round_trip::<PlanningResponse>("valid/planning/planning-response/basic.json");
+    round_trip::<RepairRequest>("valid/planning/repair-request/basic.json");
+    round_trip::<RepairResponse>("valid/planning/repair-response/basic.json");
+    round_trip::<RecalculationTrigger>("valid/store/recalculation-trigger/basic.json");
     round_trip::<ProjectionPreview>("valid/projection/projection-preview/basic.json");
 }

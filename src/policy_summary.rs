@@ -15,5 +15,11 @@ pub struct PolicySummary {
     pub legitimization: Legitimization,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub adjudication_reasons: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub local_only: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_cloud_llm: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub no_external_export: Option<bool>,
     pub checked_at: UbuTimestamp,
 }
