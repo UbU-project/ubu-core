@@ -24,6 +24,7 @@ pub use id_registry::{ObjectType, PrefixEntry};
 pub use ids::UbuId;
 pub use object_ref::ObjectRef;
 pub use policy_summary::{Legitimization, PolicySummary};
+pub use projection::{ExportProjectionContext, Legitimizer, LegitimizerDecision};
 pub use provenance::Provenance;
 pub use source_ref::SourceRef;
 pub use time::UbuTimestamp;
