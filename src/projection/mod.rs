@@ -5,7 +5,9 @@ pub mod preview;
 pub mod result;
 
 pub use approval::ProjectionApproval;
-pub use legitimizer::{ExportProjectionContext, Legitimizer, LegitimizerDecision};
+pub use legitimizer::{
+    ExportGateDecision, ExportPermit, ExportProjectionContext, Legitimizer, LegitimizerDecision,
+};
 pub use operation::{ProjectionOperation, ProjectionOperationKind};
 pub use preview::ProjectionPreview;
 pub use result::{
