@@ -28,5 +28,10 @@ pub use snapshot::{
     AffectSourceKind, AffectThreshold, Snapshot, SnapshotAffect,
 };
 pub use task::{MootReasonCode, Task, TaskStatus};
-pub use universe_state::UniverseState;
+pub use universe_state::{
+    apply_universe_mutations, evaluate_universe_precondition, JsonScalar, UniverseEventMarkers,
+    UniverseFacts, UniverseMutation, UniverseMutationError, UniverseNumericValues,
+    UniversePrecondition, UniversePreconditionError, UniversePreconditionLeaf,
+    UniverseSetMemberships, UniverseState,
+};
 pub use work_item::WorkItem;
