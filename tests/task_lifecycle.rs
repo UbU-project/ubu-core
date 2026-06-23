@@ -75,6 +75,69 @@ fn active_task_with_moot_reason_fails_lifecycle_validation() {
 }
 
 #[test]
+fn task_preconditions_tree_round_trips_losslessly() {
+    let original = serde_json::json!({
+        "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+        "title": "Run gated task",
+        "status": "active",
+        "preconditions": {
+            "all_of": [
+                {
+                    "target": "facts.ticket.status",
+                    "predicate": "equals",
+                    "expected": "ready"
+                },
+                {
+                    "any_of": [
+                        {
+                            "target": "facts.ticket.owner",
+                            "predicate": "absent"
+                        },
+                        {
+                            "target": "set_memberships.ticket.labels",
+                            "predicate": "member_of",
+                            "expected": "accepted"
+                        }
+                    ]
+                }
+            ]
+        },
+        "provenance": {
+            "created_at": "2026-06-10T14:30:00Z",
+            "authority_source": "user"
+        }
+    });
+
+    let parsed: Task = serde_json::from_value(original.clone()).expect("task deserializes");
+
+    assert!(parsed.preconditions.is_some());
+    assert_eq!(
+        serde_json::to_value(&parsed).expect("serialize task"),
+        original
+    );
+
+    let reparsed: Task =
+        serde_json::from_value(serde_json::to_value(&parsed).expect("serialize task"))
+            .expect("task deserializes again");
+    assert_eq!(reparsed, parsed);
+}
+
+#[test]
+fn task_without_preconditions_round_trips_as_none_and_omits_field() {
+    let original = fixture_json("valid/core/task/basic.json");
+    let task: Task = serde_json::from_value(original.clone()).expect("task deserializes");
+
+    assert_eq!(task.preconditions, None);
+
+    let serialized = serde_json::to_value(task).expect("serialize task");
+    assert!(serialized.get("preconditions").is_none());
+    assert_eq!(serialized, original);
+
+    let reparsed: Task = serde_json::from_value(serialized).expect("serialized task deserializes");
+    assert_eq!(reparsed.preconditions, None);
+}
+
+#[test]
 fn persisted_noncanonical_status_values_fail_deserialization() {
     for status in ["ready", "in_progress", "proposed", "blocked", "canceled"] {
         let json = format!(

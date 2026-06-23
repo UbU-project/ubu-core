@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::universe_state::UniversePrecondition;
 use crate::ids::UbuId;
 use crate::provenance::Provenance;
 use crate::time::UbuTimestamp;
@@ -38,7 +39,7 @@ pub enum MootReasonCode {
     Duplicate,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Task {
     pub id: UbuId,
     pub title: String,
@@ -51,5 +52,9 @@ pub struct Task {
     pub objective_id: Option<UbuId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub due_at: Option<UbuTimestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preconditions: Option<UniversePrecondition>,
     pub provenance: Provenance,
 }
+
+impl Eq for Task {}
