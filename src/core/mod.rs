@@ -24,8 +24,8 @@ pub use objective::{Objective, ObjectiveStatus};
 pub use preference::Preference;
 pub use relationship::Relationship;
 pub use snapshot::{
-    AffectDimension, AffectDimensionObservation, AffectDimensions, AffectDirection, AffectScale,
-    AffectSourceKind, AffectThreshold, Snapshot, SnapshotAffect,
+    AffectDimension, AffectDimensionObservation, AffectDimensions, AffectSourceKind, Snapshot,
+    SnapshotAffect,
 };
 pub use task::{MootReasonCode, Task, TaskStatus};
 pub use universe_state::{

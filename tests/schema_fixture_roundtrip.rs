@@ -94,3 +94,8 @@ fn rejects_free_form_recalculation_reason_fixture() {
         "invalid/store/recalculation-trigger/old-reason.json",
     );
 }
+
+#[test]
+fn rejects_stale_snapshot_tolerance_fields_fixture() {
+    assert_fixture_rejected::<Snapshot>("invalid/core/snapshot/stale-tolerance-fields.json");
+}

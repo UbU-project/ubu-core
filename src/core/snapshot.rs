@@ -19,34 +19,11 @@ pub enum AffectDimension {
     MoodIntensity,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AffectDirection {
-    HigherIsBetter,
-    LowerIsBetter,
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct AffectScale {
-    pub min: i64,
-    pub max: i64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct AffectThreshold {
-    pub warning_delta: f64,
-    pub critical_delta: f64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AffectDimensionObservation {
     pub dimension: AffectDimension,
-    pub direction: AffectDirection,
     pub value: f64,
-    pub scale: AffectScale,
-    pub threshold: AffectThreshold,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub freshness_seconds: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
