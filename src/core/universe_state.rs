@@ -159,6 +159,112 @@ pub enum UniversePreconditionError {
     Malformed(String),
 }
 
+/// §5 instance mode. `user_mode` models intrinsic affect; `organization_mode`
+/// and `worker_mode` do not and reject intrinsic-affect targets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+// Variant names mirror the §5 `*_mode` instance modes; the shared suffix is intentional.
+#[allow(clippy::enum_variant_names)]
+pub enum InstanceMode {
+    UserMode,
+    OrganizationMode,
+    WorkerMode,
+}
+
+impl InstanceMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::UserMode => "user_mode",
+            Self::OrganizationMode => "organization_mode",
+            Self::WorkerMode => "worker_mode",
+        }
+    }
+
+    /// Whether this mode models intrinsic affect and therefore permits
+    /// intrinsic-affect targets.
+    pub fn models_intrinsic_affect(self) -> bool {
+        matches!(self, Self::UserMode)
+    }
+}
+
+impl fmt::Display for InstanceMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Rejection raised when a target addresses intrinsic affect in a mode that
+/// does not model it. Distinct from precondition evaluation and mutation
+/// application errors.
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum ModeValidationError {
+    #[error("instance mode `{mode}` does not model intrinsic affect; target `{target}` is not permitted")]
+    IntrinsicAffectForbidden { mode: InstanceMode, target: String },
+}
+
+/// A dotted target is intrinsic-affect when the namespace segment immediately
+/// after its collection is `affect` (e.g. `numeric_values.affect.energy`). The
+/// collection is the first segment; the namespace begins at the second.
+pub fn is_intrinsic_affect_target(target: &str) -> bool {
+    target
+        .split('.')
+        .nth(1)
+        .is_some_and(|namespace| namespace == "affect")
+}
+
+/// Reject intrinsic-affect leaf targets anywhere in a precondition tree when
+/// the mode does not model intrinsic affect. `user_mode` always passes.
+pub fn validate_precondition_for_mode(
+    mode: InstanceMode,
+    precondition: &UniversePrecondition,
+) -> Result<(), ModeValidationError> {
+    if mode.models_intrinsic_affect() {
+        return Ok(());
+    }
+    match first_intrinsic_affect_precondition_target(precondition) {
+        Some(target) => Err(ModeValidationError::IntrinsicAffectForbidden {
+            mode,
+            target: target.to_owned(),
+        }),
+        None => Ok(()),
+    }
+}
+
+/// Reject intrinsic-affect mutation targets when the mode does not model
+/// intrinsic affect. `user_mode` always passes.
+pub fn validate_mutations_for_mode(
+    mode: InstanceMode,
+    mutations: &[UniverseMutation],
+) -> Result<(), ModeValidationError> {
+    if mode.models_intrinsic_affect() {
+        return Ok(());
+    }
+    match mutations
+        .iter()
+        .find(|mutation| is_intrinsic_affect_target(&mutation.target))
+    {
+        Some(mutation) => Err(ModeValidationError::IntrinsicAffectForbidden {
+            mode,
+            target: mutation.target.clone(),
+        }),
+        None => Ok(()),
+    }
+}
+
+fn first_intrinsic_affect_precondition_target(precondition: &UniversePrecondition) -> Option<&str> {
+    match precondition {
+        UniversePrecondition::AllOf { all_of } => all_of
+            .iter()
+            .find_map(first_intrinsic_affect_precondition_target),
+        UniversePrecondition::AnyOf { any_of } => any_of
+            .iter()
+            .find_map(first_intrinsic_affect_precondition_target),
+        UniversePrecondition::Leaf(leaf) => {
+            is_intrinsic_affect_target(&leaf.target).then_some(leaf.target.as_str())
+        }
+    }
+}
+
 pub fn apply_universe_mutations(
     state: &UniverseState,
     mutations: &[UniverseMutation],
@@ -899,6 +1005,111 @@ mod tests {
         assert!(
             evaluate_universe_precondition(&state(), &leaf("facts.status", "equals", None))
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn is_intrinsic_affect_target_uses_namespace_predicate() {
+        assert!(is_intrinsic_affect_target("numeric_values.affect.energy"));
+        assert!(is_intrinsic_affect_target("facts.affect.recent_state"));
+        // `affect` as the collection (first segment) is not the namespace.
+        assert!(!is_intrinsic_affect_target("affect.energy"));
+        assert!(!is_intrinsic_affect_target("facts.ticket.status"));
+        assert!(!is_intrinsic_affect_target("facts"));
+    }
+
+    #[test]
+    fn user_mode_permits_affect_targets_in_precondition_and_mutations() {
+        let precondition = UniversePrecondition::AllOf {
+            all_of: vec![
+                leaf("numeric_values.affect.energy", "equals", Some(json!(1.0))),
+                leaf("facts.ticket.status", "equals", Some(json!("ready"))),
+            ],
+        };
+        let mutations = vec![mutation(
+            "increment_numeric",
+            "numeric_values.affect.energy",
+            Some(json!(1)),
+        )];
+
+        assert_eq!(
+            validate_precondition_for_mode(InstanceMode::UserMode, &precondition),
+            Ok(())
+        );
+        assert_eq!(
+            validate_mutations_for_mode(InstanceMode::UserMode, &mutations),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn organization_and_worker_mode_reject_affect_targets() {
+        let precondition = UniversePrecondition::AnyOf {
+            any_of: vec![
+                leaf("facts.ticket.status", "equals", Some(json!("ready"))),
+                leaf("facts.affect.recent_state", "equals", Some(json!("calm"))),
+            ],
+        };
+        let mutations = vec![mutation(
+            "set_fact",
+            "facts.affect.recent_state",
+            Some(json!("calm")),
+        )];
+
+        for mode in [InstanceMode::OrganizationMode, InstanceMode::WorkerMode] {
+            assert_eq!(
+                validate_precondition_for_mode(mode, &precondition),
+                Err(ModeValidationError::IntrinsicAffectForbidden {
+                    mode,
+                    target: "facts.affect.recent_state".to_owned(),
+                })
+            );
+            assert_eq!(
+                validate_mutations_for_mode(mode, &mutations),
+                Err(ModeValidationError::IntrinsicAffectForbidden {
+                    mode,
+                    target: "facts.affect.recent_state".to_owned(),
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn non_affect_targets_pass_in_all_modes() {
+        let precondition = leaf("facts.ticket.status", "equals", Some(json!("ready")));
+        let mutations = vec![mutation(
+            "set_fact",
+            "facts.ticket.status",
+            Some(json!("ready")),
+        )];
+
+        for mode in [
+            InstanceMode::UserMode,
+            InstanceMode::OrganizationMode,
+            InstanceMode::WorkerMode,
+        ] {
+            assert_eq!(validate_precondition_for_mode(mode, &precondition), Ok(()));
+            assert_eq!(validate_mutations_for_mode(mode, &mutations), Ok(()));
+        }
+    }
+
+    #[test]
+    fn instance_mode_serde_matches_section_five_strings() {
+        assert_eq!(
+            serde_json::to_value(InstanceMode::UserMode).unwrap(),
+            json!("user_mode")
+        );
+        assert_eq!(
+            serde_json::to_value(InstanceMode::OrganizationMode).unwrap(),
+            json!("organization_mode")
+        );
+        assert_eq!(
+            serde_json::to_value(InstanceMode::WorkerMode).unwrap(),
+            json!("worker_mode")
+        );
+        assert_eq!(
+            serde_json::from_value::<InstanceMode>(json!("worker_mode")).unwrap(),
+            InstanceMode::WorkerMode
         );
     }
 

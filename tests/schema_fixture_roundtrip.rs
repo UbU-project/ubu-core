@@ -71,6 +71,7 @@ fn round_trips_canonical_or_placeholder_fixtures() {
     );
 
     round_trip_fixture::<Task>("valid/core/task/basic.json");
+    round_trip_fixture::<Task>("valid/core/task/with-effects.json");
     round_trip_fixture::<Objective>("valid/core/objective/basic.json");
     round_trip_fixture::<ExternalReference>("valid/core/external-reference/basic.json");
     round_trip_fixture::<LogEntry>("valid/core/log-entry/basic.json");
@@ -98,4 +99,9 @@ fn rejects_free_form_recalculation_reason_fixture() {
 #[test]
 fn rejects_stale_snapshot_tolerance_fields_fixture() {
     assert_fixture_rejected::<Snapshot>("invalid/core/snapshot/stale-tolerance-fields.json");
+}
+
+#[test]
+fn rejects_task_effects_unknown_field_fixture() {
+    assert_fixture_rejected::<Task>("invalid/core/task/effects-unknown-field.json");
 }
