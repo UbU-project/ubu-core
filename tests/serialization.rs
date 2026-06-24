@@ -9,8 +9,22 @@ use ubu_core::policy_summary::PolicySummary;
 use ubu_core::projection::ProjectionPreview;
 use ubu_core::store::RecalculationTrigger;
 
+/// Resolve a fixture against the canonical `ubu-schemas` fixtures first, falling
+/// back to the `ubu-core`-owned placeholders for the planning/repair contract
+/// types whose canonical fixtures were removed from `ubu-schemas`.
+fn resolve_fixture(relative: &str) -> PathBuf {
+    let canonical = PathBuf::from(env!("UBU_SCHEMAS_FIXTURES")).join(relative);
+    if canonical.is_file() {
+        canonical
+    } else {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("fixtures/placeholders")
+            .join(relative)
+    }
+}
+
 fn fixture(relative: &str) -> String {
-    let path = PathBuf::from(env!("UBU_SCHEMAS_FIXTURES")).join(relative);
+    let path = resolve_fixture(relative);
     fs::read_to_string(&path)
         .unwrap_or_else(|err| panic!("failed to read {}: {err}", path.display()))
 }

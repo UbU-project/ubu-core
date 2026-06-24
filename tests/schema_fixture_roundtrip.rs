@@ -18,6 +18,23 @@ fn fixture_root() -> PathBuf {
     PathBuf::from(env!("UBU_SCHEMAS_FIXTURES"))
 }
 
+fn placeholder_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("fixtures/placeholders")
+}
+
+/// Resolve a fixture against the canonical `ubu-schemas` fixtures first, falling
+/// back to the `ubu-core`-owned placeholders. Types whose canonical fixtures were
+/// removed from `ubu-schemas` (the planning/repair contract types, which are
+/// `ubu-core`-owned) resolve against the placeholder tree.
+fn resolve_fixture(relative: &str) -> PathBuf {
+    let canonical = fixture_root().join(relative);
+    if canonical.is_file() {
+        canonical
+    } else {
+        placeholder_root().join(relative)
+    }
+}
+
 fn assert_submodule_state_is_explicit() {
     let present = env!("UBU_SCHEMAS_REF_PRESENT");
     assert!(
@@ -30,7 +47,7 @@ fn round_trip_fixture<T>(relative: &str)
 where
     T: Serialize + DeserializeOwned + std::fmt::Debug,
 {
-    let path = fixture_root().join(relative);
+    let path = resolve_fixture(relative);
     let json = fs::read_to_string(&path).unwrap_or_else(|err| {
         panic!("failed to read fixture {}: {err}", path.display());
     });
