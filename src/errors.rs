@@ -4,6 +4,27 @@ pub type Result<T> = std::result::Result<T, UbuError>;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
+    #[error("origin device id must not be empty")]
+    EmptyDeviceId,
+
+    #[error("idempotency key must not be empty")]
+    EmptyIdempotencyKey,
+
+    #[error("invalid version reference `{value}`")]
+    InvalidVersionRef { value: String },
+
+    #[error("policy-dependent mutation requires non-empty observed_policy_versions")]
+    MissingObservedPolicyVersions,
+
+    #[error("local monotonic issuer counter exhausted")]
+    IssuerCounterExhausted,
+
+    #[error("idempotency_key_conflict for device `{origin_device_id}` and key `{idempotency_key}`")]
+    IdempotencyKeyConflict {
+        origin_device_id: String,
+        idempotency_key: String,
+    },
+
     #[error("invalid UbU id `{value}`")]
     InvalidId { value: String },
 

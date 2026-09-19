@@ -128,3 +128,78 @@ pub struct MutationEnvelope {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution_context: Option<ExecutionContext>,
 }
+
+impl MutationEnvelope {
+    /// Check envelope invariants without imposing ordering on its three times.
+    pub fn validate(&self) -> crate::Result<()> {
+        self.actor_identity_id
+            .require_object_type(crate::ObjectType::Identity)?;
+        DeviceId::parse(self.origin_device_id.as_str())?;
+        IdempotencyKey::parse(self.idempotency_key.as_str())?;
+        for id in self.observed_versions.keys() {
+            UbuId::parse(id.as_str())?;
+        }
+        Ok(())
+    }
+
+    /// Policy-dependent call sites MUST call this in addition to `validate`.
+    /// Neither the schema nor this envelope can infer whether the mutation
+    /// relies on Compartment, Zone, projection, routing, or other policy state.
+    pub fn require_policy_versions(&self) -> crate::Result<()> {
+        match &self.observed_policy_versions {
+            Some(versions) if !versions.is_empty() => Ok(()),
+            _ => Err(UbuError::MissingObservedPolicyVersions),
+        }
+    }
+
+    pub fn mutation_key(&self) -> MutationKey {
+        MutationKey {
+            origin_device_id: self.origin_device_id.clone(),
+            idempotency_key: self.idempotency_key.clone(),
+        }
+    }
+}
+
+/// Duplicate-detection key; replay handling belongs to the admission writer.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MutationKey {
+    pub origin_device_id: DeviceId,
+    pub idempotency_key: IdempotencyKey,
+}
+
+/// Compact UTF-8 JSON with recursively sorted object keys and preserved array
+/// order and values. This defines payload equality without a hashing dependency.
+pub fn canonical_payload_bytes(payload: &serde_json::Value) -> Vec<u8> {
+    fn write(value: &serde_json::Value, bytes: &mut Vec<u8>) {
+        match value {
+            serde_json::Value::Object(object) => {
+                bytes.push(b'{');
+                let sorted: BTreeMap<_, _> = object.iter().collect();
+                for (index, (key, value)) in sorted.into_iter().enumerate() {
+                    if index != 0 {
+                        bytes.push(b',');
+                    }
+                    serde_json::to_writer(&mut *bytes, key).expect("JSON key serializes");
+                    bytes.push(b':');
+                    write(value, bytes);
+                }
+                bytes.push(b'}');
+            }
+            serde_json::Value::Array(array) => {
+                bytes.push(b'[');
+                for (index, value) in array.iter().enumerate() {
+                    if index != 0 {
+                        bytes.push(b',');
+                    }
+                    write(value, bytes);
+                }
+                bytes.push(b']');
+            }
+            _ => serde_json::to_writer(bytes, value).expect("JSON value serializes"),
+        }
+    }
+
+    let mut bytes = Vec::new();
+    write(payload, &mut bytes);
+    bytes
+}
