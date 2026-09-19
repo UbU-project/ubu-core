@@ -341,6 +341,32 @@ mod tests {
     }
 
     #[test]
+    fn version_ref_rejects_leading_zeros_and_accepts_zero() {
+        for value in ["v007", "v00", "v01"] {
+            assert!(serde_json::from_value::<VersionRef>(json!(value)).is_err());
+        }
+        assert_eq!(
+            serde_json::from_value::<VersionRef>(json!("v0")).unwrap(),
+            VersionRef::Version(0)
+        );
+    }
+
+    #[test]
+    fn version_ref_rejects_canonical_value_beyond_u64_range() {
+        // Deliberately not a schema fixture: the schema accepts this canonical
+        // 20-digit spelling by design; the consuming Rust type bounds its range.
+        let value = "v99999999999999999999";
+        let error = serde_json::from_value::<VersionRef>(json!(value)).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            UbuError::InvalidVersionRef {
+                value: value.to_owned(),
+            }
+            .to_string()
+        );
+    }
+
+    #[test]
     fn validate_requires_identity_actor() {
         let mut value = envelope();
         value.actor_identity_id = value.observed_versions.keys().next().unwrap().clone();
@@ -417,7 +443,7 @@ mod tests {
 
     #[test]
     fn duplicate_key_is_scoped_to_device_and_idempotency_key() {
-        let issuer = LocalMonotonicIssuer::new(DeviceId::parse("local").unwrap());
+        let issuer = LocalIssuer::new(DeviceId::parse("local").unwrap());
         let first = (issuer.issue(request()).unwrap(), json!({"title": "first"}));
         let second = (issuer.issue(request()).unwrap(), json!({"title": "second"}));
         assert_ne!(
@@ -469,15 +495,15 @@ mod tests {
     }
 
     #[test]
-    fn issuer_stamps_device_clock_and_increasing_keys() {
+    fn issuer_stamps_device_clock_and_unique_keys() {
         let now = UbuTimestamp::parse("2026-06-10T09:00:00Z").unwrap();
-        let issuer = LocalMonotonicIssuer::with_clock(
+        let issuer = LocalIssuer::with_clock(
             DeviceId::parse("registered-device").unwrap(),
             move || now,
         );
         let issuer: &dyn CausalityIssuer = &issuer;
-        let mut keys = Vec::new();
-        for _ in 0..101 {
+        let mut keys = std::collections::HashSet::new();
+        for _ in 0..1024 {
             let request = request();
             let value = issuer.issue(request.clone()).unwrap();
             assert_eq!(value.origin_device_id.as_str(), "registered-device");
@@ -492,30 +518,29 @@ mod tests {
                 request.observed_policy_versions
             );
             assert_eq!(value.execution_context, request.execution_context);
-            keys.push(value.idempotency_key);
+            assert!(keys.insert(value.idempotency_key));
         }
-        assert!(keys.windows(2).all(|pair| pair[0] < pair[1]));
     }
 
     #[test]
-    fn issuer_exhaustion_does_not_repeat_keys() {
-        let issuer = LocalMonotonicIssuer::new(DeviceId::parse("local").unwrap());
-        issuer.counter.store(u64::MAX - 1, Ordering::Relaxed);
-        assert_eq!(
-            issuer.issue(request()).unwrap().idempotency_key.as_str(),
-            "18446744073709551615"
-        );
-        for _ in 0..2 {
-            assert_eq!(
-                issuer.issue(request()),
-                Err(UbuError::IssuerCounterExhausted)
-            );
-        }
+    fn recreated_issuer_does_not_repeat_keys_for_same_device() {
+        let device_id = DeviceId::parse("local").unwrap();
+        let now = UbuTimestamp::parse("2026-06-10T09:00:00Z").unwrap();
+        let first = {
+            let issuer = LocalIssuer::with_clock(device_id.clone(), move || now);
+            issuer.issue(request()).unwrap()
+        };
+        let restarted = LocalIssuer::with_clock(device_id, move || now);
+        let second = restarted.issue(request()).unwrap();
+        assert_eq!(first.origin_device_id, second.origin_device_id);
+        assert_eq!(first.created_time, second.created_time);
+        assert_ne!(first.idempotency_key, second.idempotency_key);
+        assert_ne!(first.mutation_key(), second.mutation_key());
     }
 
     #[test]
     fn issuer_rejects_invalid_request() {
-        let issuer = LocalMonotonicIssuer::new(DeviceId::parse("local").unwrap());
+        let issuer = LocalIssuer::new(DeviceId::parse("local").unwrap());
         let mut request = request();
         request.actor_identity_id = request.observed_versions.keys().next().unwrap().clone();
         assert!(matches!(

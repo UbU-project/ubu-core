@@ -149,3 +149,10 @@ fn rejects_malformed_mutation_version_fixture() {
         "invalid/store/mutation-envelope/malformed-version-reference.json",
     );
 }
+
+#[test]
+fn rejects_leading_zero_mutation_version_fixture() {
+    assert_fixture_rejected::<MutationEnvelope>(
+        "invalid/store/mutation-envelope/leading-zero-version.json",
+    );
+}
