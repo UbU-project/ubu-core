@@ -61,9 +61,9 @@ impl<'de> Deserialize<'de> for IdempotencyKey {
 
 /// An object precondition, not an ordering clock or global version.
 ///
-/// The schema's `^v[0-9]+$` is broader than `Version(u64)`: Rust rejects
-/// overflow and leading zeros so every accepted version string round-trips
-/// byte-identically. Canonical spellings are `v0`, `v1`, ..., or `absent`.
+/// Schema and type share the canonical grammar: `v0`, `v1`, ..., or `absent`,
+/// with no leading zeros. The type additionally bounds versions to `u64`;
+/// every accepted version string round-trips byte-identically.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum VersionRef {
     Version(u64),
