@@ -11,7 +11,7 @@ use ubu_core::planning::{
 };
 use ubu_core::policy_summary::PolicySummary;
 use ubu_core::projection::ProjectionPreview;
-use ubu_core::store::RecalculationTrigger;
+use ubu_core::store::{MutationEnvelope, RecalculationTrigger};
 use ubu_core::worker::{GpuAdvisoryRequest, GpuAdvisoryResponse};
 
 fn fixture_root() -> PathBuf {
@@ -62,7 +62,7 @@ fn assert_fixture_rejected<T>(relative: &str)
 where
     T: DeserializeOwned + std::fmt::Debug,
 {
-    let path = fixture_root().join(relative);
+    let path = resolve_fixture(relative);
     let json = fs::read_to_string(&path).unwrap_or_else(|err| {
         panic!("failed to read fixture {}: {err}", path.display());
     });
@@ -121,4 +121,31 @@ fn rejects_stale_snapshot_tolerance_fields_fixture() {
 #[test]
 fn rejects_task_effects_unknown_field_fixture() {
     assert_fixture_rejected::<Task>("invalid/core/task/effects-unknown-field.json");
+}
+
+#[test]
+fn mutation_envelope_fixtures_round_trip_byte_identically() {
+    for case in [
+        "basic",
+        "create-absence-precondition",
+        "overnight-advisory",
+        "with-policy-versions",
+    ] {
+        let relative = format!("valid/store/mutation-envelope/{case}.json");
+        round_trip_fixture::<MutationEnvelope>(&relative);
+        let original = fs::read_to_string(resolve_fixture(&relative)).unwrap();
+        let envelope: MutationEnvelope = serde_json::from_str(&original).unwrap();
+        envelope.validate().unwrap();
+        assert_eq!(
+            format!("{}\n", serde_json::to_string_pretty(&envelope).unwrap()),
+            original
+        );
+    }
+}
+
+#[test]
+fn rejects_malformed_mutation_version_fixture() {
+    assert_fixture_rejected::<MutationEnvelope>(
+        "invalid/store/mutation-envelope/malformed-version-reference.json",
+    );
 }

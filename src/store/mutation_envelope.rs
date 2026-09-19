@@ -280,3 +280,267 @@ impl CausalityIssuer for LocalMonotonicIssuer {
         Ok(envelope)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn envelope() -> MutationEnvelope {
+        serde_json::from_str(include_str!(
+            "../../fixtures/placeholders/valid/store/mutation-envelope/basic.json"
+        ))
+        .unwrap()
+    }
+
+    fn request() -> EnvelopeRequest {
+        let envelope = envelope();
+        EnvelopeRequest {
+            observed_versions: envelope.observed_versions,
+            actor_identity_id: envelope.actor_identity_id,
+            authority_source: envelope.authority_source,
+            effective_time: UbuTimestamp::parse("2026-06-10T02:00:00Z").unwrap(),
+            observed_policy_versions: Some(BTreeMap::from([(
+                "routing:default".into(),
+                "v2".into(),
+            )])),
+            execution_context: Some(ExecutionContext {
+                context_label: Some("advisory".into()),
+                backend_id: None,
+                provider_id: Some("local".into()),
+            }),
+        }
+    }
+
+    #[test]
+    fn version_ref_round_trips_exact_strings() {
+        for (wire, expected) in [
+            ("\"v0\"", VersionRef::Version(0)),
+            ("\"v17\"", VersionRef::Version(17)),
+            ("\"absent\"", VersionRef::Absent),
+            ("\"v18446744073709551615\"", VersionRef::Version(u64::MAX)),
+        ] {
+            let version: VersionRef = serde_json::from_str(wire).unwrap();
+            assert_eq!(version, expected);
+            assert_eq!(serde_json::to_string(&version).unwrap(), wire);
+        }
+    }
+
+    #[test]
+    fn version_ref_rejects_other_spellings_and_overflow() {
+        for wire in [
+            "17",
+            "\"17\"",
+            "\"v\"",
+            "\"V17\"",
+            "\"v-1\"",
+            "\"deleted\"",
+            "\"v+1\"",
+            "\"v01\"",
+            "\"v00\"",
+            "\"v18446744073709551616\"",
+            "\"v١\"",
+            "\"v17\\n\"",
+            "null",
+            "{}",
+        ] {
+            assert!(serde_json::from_str::<VersionRef>(wire).is_err(), "{wire}");
+        }
+    }
+
+    #[test]
+    fn validate_requires_identity_actor() {
+        let mut value = envelope();
+        value.actor_identity_id = value.observed_versions.keys().next().unwrap().clone();
+        assert!(matches!(
+            value.validate(),
+            Err(UbuError::WrongIdObjectType { .. })
+        ));
+    }
+
+    #[test]
+    fn validate_rejects_empty_device_and_key() {
+        let mut value = envelope();
+        value.origin_device_id = DeviceId(String::new());
+        assert_eq!(value.validate(), Err(UbuError::EmptyDeviceId));
+        let mut value = envelope();
+        value.idempotency_key = IdempotencyKey(String::new());
+        assert_eq!(value.validate(), Err(UbuError::EmptyIdempotencyKey));
+        assert_eq!(DeviceId::parse(""), Err(UbuError::EmptyDeviceId));
+        assert_eq!(
+            IdempotencyKey::parse(""),
+            Err(UbuError::EmptyIdempotencyKey)
+        );
+        assert!(serde_json::from_str::<DeviceId>("\"\"").is_err());
+        assert!(serde_json::from_str::<IdempotencyKey>("\"\"").is_err());
+        assert_eq!(DeviceId::parse(" ").unwrap().as_str(), " ");
+        assert_eq!(IdempotencyKey::parse(" ").unwrap().as_str(), " ");
+    }
+
+    #[test]
+    fn invalid_observed_id_is_rejected_before_validate() {
+        // UbuId's private, validated representation prevents constructing an
+        // invalid map key. Exercise that invariant at the deserialization edge.
+        let mut value = serde_json::to_value(envelope()).unwrap();
+        value["observed_versions"] = json!({"not-a-ubu-id": "v17"});
+        assert!(serde_json::from_value::<MutationEnvelope>(value).is_err());
+        let mut value = envelope();
+        value.observed_versions.clear();
+        value.validate().unwrap();
+    }
+
+    #[test]
+    fn policy_versions_are_required_only_when_requested() {
+        let mut value = envelope();
+        value.validate().unwrap();
+        assert_eq!(
+            value.require_policy_versions(),
+            Err(UbuError::MissingObservedPolicyVersions)
+        );
+        value.observed_policy_versions = Some(BTreeMap::new());
+        assert_eq!(
+            value.require_policy_versions(),
+            Err(UbuError::MissingObservedPolicyVersions)
+        );
+        value.observed_policy_versions =
+            Some(BTreeMap::from([("routing:default".into(), "v2".into())]));
+        value.require_policy_versions().unwrap();
+    }
+
+    #[test]
+    fn overnight_times_remain_independent_through_round_trip() {
+        let value: MutationEnvelope = serde_json::from_str(include_str!(
+            "../../fixtures/placeholders/valid/store/mutation-envelope/overnight-advisory.json"
+        ))
+        .unwrap();
+        value.validate().unwrap();
+        assert_eq!(value.created_time.to_string(), "2026-06-10T02:00:00Z");
+        assert_eq!(value.effective_time.to_string(), "2026-06-10T02:00:00Z");
+        assert_eq!(value.recorded_time.to_string(), "2026-06-10T09:00:00Z");
+        assert!(value.created_time < value.recorded_time);
+        let restored: MutationEnvelope =
+            serde_json::from_slice(&serde_json::to_vec(&value).unwrap()).unwrap();
+        assert_eq!(restored, value);
+    }
+
+    #[test]
+    fn duplicate_key_is_scoped_to_device_and_idempotency_key() {
+        let issuer = LocalMonotonicIssuer::new(DeviceId::parse("local").unwrap());
+        let first = (issuer.issue(request()).unwrap(), json!({"title": "first"}));
+        let second = (issuer.issue(request()).unwrap(), json!({"title": "second"}));
+        assert_ne!(
+            canonical_payload_bytes(&first.1),
+            canonical_payload_bytes(&second.1)
+        );
+        assert_ne!(first.0.mutation_key(), second.0.mutation_key());
+        let mut replay = second.0;
+        replay.idempotency_key = first.0.idempotency_key.clone();
+        assert_eq!(first.0.mutation_key(), replay.mutation_key());
+        let keys = std::collections::HashSet::from([first.0.mutation_key(), replay.mutation_key()]);
+        assert_eq!(keys.len(), 1);
+        replay.origin_device_id = DeviceId::parse("other").unwrap();
+        assert_ne!(first.0.mutation_key(), replay.mutation_key());
+    }
+
+    #[test]
+    fn canonical_payload_sorts_recursively_and_preserves_values() {
+        let first: Value = serde_json::from_str(r#"{"z":[{"b":2,"a":1}],"a":"line\n\""}"#).unwrap();
+        let reordered: Value =
+            serde_json::from_str(r#"{"a":"line\n\"","z":[{"a":1,"b":2}]}"#).unwrap();
+        assert_eq!(
+            canonical_payload_bytes(&first),
+            canonical_payload_bytes(&reordered)
+        );
+        assert_eq!(
+            serde_json::from_slice::<Value>(&canonical_payload_bytes(&first)).unwrap(),
+            first
+        );
+        for replacement in [
+            json!(3),
+            json!("2"),
+            json!(null),
+            json!(false),
+            json!([]),
+            json!({}),
+        ] {
+            let mut changed = first.clone();
+            changed["z"][0]["b"] = replacement;
+            assert_ne!(
+                canonical_payload_bytes(&first),
+                canonical_payload_bytes(&changed)
+            );
+        }
+        assert_ne!(
+            canonical_payload_bytes(&json!([1, 2])),
+            canonical_payload_bytes(&json!([2, 1]))
+        );
+    }
+
+    #[test]
+    fn issuer_stamps_device_clock_and_increasing_keys() {
+        let now = UbuTimestamp::parse("2026-06-10T09:00:00Z").unwrap();
+        let issuer = LocalMonotonicIssuer::with_clock(
+            DeviceId::parse("registered-device").unwrap(),
+            move || now,
+        );
+        let issuer: &dyn CausalityIssuer = &issuer;
+        let mut keys = Vec::new();
+        for _ in 0..101 {
+            let request = request();
+            let value = issuer.issue(request.clone()).unwrap();
+            assert_eq!(value.origin_device_id.as_str(), "registered-device");
+            assert_eq!(value.created_time, now);
+            assert_eq!(value.recorded_time, now);
+            assert_eq!(value.effective_time, request.effective_time);
+            assert_eq!(value.observed_versions, request.observed_versions);
+            assert_eq!(value.actor_identity_id, request.actor_identity_id);
+            assert_eq!(value.authority_source, request.authority_source);
+            assert_eq!(
+                value.observed_policy_versions,
+                request.observed_policy_versions
+            );
+            assert_eq!(value.execution_context, request.execution_context);
+            keys.push(value.idempotency_key);
+        }
+        assert!(keys.windows(2).all(|pair| pair[0] < pair[1]));
+    }
+
+    #[test]
+    fn issuer_exhaustion_does_not_repeat_keys() {
+        let issuer = LocalMonotonicIssuer::new(DeviceId::parse("local").unwrap());
+        issuer.counter.store(u64::MAX - 1, Ordering::Relaxed);
+        assert_eq!(
+            issuer.issue(request()).unwrap().idempotency_key.as_str(),
+            "18446744073709551615"
+        );
+        for _ in 0..2 {
+            assert_eq!(
+                issuer.issue(request()),
+                Err(UbuError::IssuerCounterExhausted)
+            );
+        }
+    }
+
+    #[test]
+    fn issuer_rejects_invalid_request() {
+        let issuer = LocalMonotonicIssuer::new(DeviceId::parse("local").unwrap());
+        let mut request = request();
+        request.actor_identity_id = request.observed_versions.keys().next().unwrap().clone();
+        assert!(matches!(
+            issuer.issue(request),
+            Err(UbuError::WrongIdObjectType { .. })
+        ));
+    }
+
+    #[test]
+    fn execution_context_cannot_restate_authority() {
+        for field in ["origin_device_id", "actor_identity_id", "authority_source"] {
+            let mut value = serde_json::to_value(envelope()).unwrap();
+            value["execution_context"] = json!({field: "override"});
+            assert!(serde_json::from_value::<MutationEnvelope>(value).is_err());
+        }
+        let mut value = serde_json::to_value(envelope()).unwrap();
+        value["unknown"] = json!("extra");
+        assert!(serde_json::from_value::<MutationEnvelope>(value).is_err());
+    }
+}
