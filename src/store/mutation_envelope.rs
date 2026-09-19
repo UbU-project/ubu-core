@@ -1,10 +1,10 @@
 //! Canonical mutation metadata, independent of any store writer or call site.
 
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use uuid::Uuid;
 
 use crate::{AuthoritySource, UbuError, UbuId, UbuTimestamp};
 
@@ -222,20 +222,21 @@ pub trait CausalityIssuer {
     fn issue(&self, request: EnvelopeRequest) -> crate::Result<MutationEnvelope>;
 }
 
-/// Phase 1b issuer with keys strictly increasing within this instance.
+/// Phase 1b issuer with a unique, opaque UUIDv7 key minted per issuance.
 ///
-/// The counter starts at zero and is not persisted across issuer recreation.
-/// Registration, restart continuity, durable recording, and replay handling are
-/// responsibilities of future admission integration. A single clock reading
+/// Restart continuity does not depend on durable issuer state. Consumers must
+/// not parse keys or depend on their ordering for correctness. The unchanged
+/// `CausalityIssuer` trait lets Phase 2 supply HLC ticks and causal parents
+/// behind the same method. Durable recording and replay handling remain future
+/// admission integration responsibilities. A single injected clock reading
 /// stamps both assembly and recording for this immediate local issuance seam;
 /// the envelope type independently preserves all three timestamps.
-pub struct LocalMonotonicIssuer {
+pub struct LocalIssuer {
     device_id: DeviceId,
-    counter: AtomicU64,
     clock: Box<dyn Fn() -> UbuTimestamp + Send + Sync>,
 }
 
-impl LocalMonotonicIssuer {
+impl LocalIssuer {
     pub fn new(device_id: DeviceId) -> Self {
         Self::with_clock(device_id, UbuTimestamp::now_utc)
     }
@@ -246,23 +247,14 @@ impl LocalMonotonicIssuer {
     ) -> Self {
         Self {
             device_id,
-            counter: AtomicU64::new(0),
             clock: Box::new(clock),
         }
     }
 }
 
-impl CausalityIssuer for LocalMonotonicIssuer {
+impl CausalityIssuer for LocalIssuer {
     fn issue(&self, request: EnvelopeRequest) -> crate::Result<MutationEnvelope> {
-        let previous = self
-            .counter
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |stamp| {
-                stamp.checked_add(1)
-            })
-            .map_err(|_| UbuError::IssuerCounterExhausted)?;
-        // Fixed width makes string ordering agree with numeric ordering,
-        // including transitions such as 9 -> 10. Exhaustion never wraps.
-        let idempotency_key = IdempotencyKey::parse(format!("{:020}", previous + 1))?;
+        let idempotency_key = IdempotencyKey::parse(Uuid::now_v7().simple().to_string())?;
         let now = (self.clock)();
         let envelope = MutationEnvelope {
             idempotency_key,

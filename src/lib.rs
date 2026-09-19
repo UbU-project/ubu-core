@@ -31,6 +31,6 @@ pub use provenance::Provenance;
 pub use source_ref::SourceRef;
 pub use store::{
     canonical_payload_bytes, CausalityIssuer, DeviceId, EnvelopeRequest, ExecutionContext,
-    IdempotencyKey, LocalMonotonicIssuer, MutationEnvelope, MutationKey, VersionRef,
+    IdempotencyKey, LocalIssuer, MutationEnvelope, MutationKey, VersionRef,
 };
 pub use time::UbuTimestamp;

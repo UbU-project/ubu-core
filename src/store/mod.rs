@@ -7,6 +7,6 @@ pub use admitted_object::AdmittedObject;
 pub use candidate_object::CandidateObject;
 pub use mutation_envelope::{
     canonical_payload_bytes, CausalityIssuer, DeviceId, EnvelopeRequest, ExecutionContext,
-    IdempotencyKey, LocalMonotonicIssuer, MutationEnvelope, MutationKey, VersionRef,
+    IdempotencyKey, LocalIssuer, MutationEnvelope, MutationKey, VersionRef,
 };
 pub use recalculation_trigger::{RecalculationTrigger, TriggerType};
