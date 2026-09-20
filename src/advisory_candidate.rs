@@ -1,10 +1,15 @@
 //! Advisory review-queue types, separate from admitted objects (UBU-D0274).
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize};
 use uuid::Uuid;
 
-use crate::UbuError;
+use crate::{
+    CompartmentLabel, DeviceId, ExecutionContext, IdempotencyKey, ObjectRef, UbuError, UbuId,
+    UbuTimestamp,
+};
 
 /// Candidate-state identity, deliberately outside the admitted-object registry.
 /// Parsing accepts only the canonical lowercase, unhyphenated UUIDv7 spelling.
@@ -138,4 +143,196 @@ pub fn transition(
         return Err(UbuError::InvalidResurfaceTrigger { current, next });
     }
     Ok(next)
+}
+
+/// Explicit tags keep redacted summaries distinct from arbitrary inline JSON.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
+pub enum CandidatePayload {
+    Inline(serde_json::Value),
+    RedactedSummary(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "kind",
+    content = "value",
+    rename_all = "snake_case",
+    deny_unknown_fields
+)]
+pub enum ReviewLabel {
+    Label(CompartmentLabel),
+    Redacted,
+}
+
+/// Advisory model/tool provenance, never an authority grant.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProposingActor {
+    pub model_or_tool_name: String,
+    pub version: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prompt_template_digest: Option<String>,
+}
+
+/// Opaque references: decision-event identities are intentionally deferred to P1B-5.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CandidateLinks {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deferral_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prior_deferral_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resurface_trigger: Option<ResurfaceTrigger>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub trigger_evidence_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resurfacing_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resurfacing_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supersession_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admission_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archive_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub correction_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rejection_ref: Option<String>,
+}
+
+/// A versioned candidate-state record; this type does not admit or persist objects.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct AdvisoryCandidate {
+    pub advisory_candidate_id: AdvisoryCandidateId,
+    pub schema_version: String,
+    pub candidate_kind: CandidateKind,
+    pub lifecycle_state: CandidateLifecycleState,
+    pub version: u64,
+    /// Typed references jointly describe target or scope, as in the ticket sketch.
+    pub target_refs: Vec<ObjectRef>,
+    pub normalized_proposal: serde_json::Value,
+    pub payload: CandidatePayload,
+    pub evidence_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
+    pub field_provenance: BTreeMap<String, String>,
+    pub proposed_at: UbuTimestamp,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_time: Option<UbuTimestamp>,
+    pub proposing_actor: ProposingActor,
+    pub origin_device_id: DeviceId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_context: Option<ExecutionContext>,
+    pub idempotency_key: IdempotencyKey,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suppression_key: Option<String>,
+    #[serde(deserialize_with = "deserialize_unique_ids")]
+    pub compartment_ids: BTreeSet<UbuId>,
+    pub review_label: ReviewLabel,
+    pub disclosure_policy: DisclosurePolicy,
+    pub retention_policy: RetentionPolicy,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_order: Option<i64>,
+    pub links: CandidateLinks,
+}
+
+// Remote derive shares the public layout, then checks cross-field invariants.
+#[derive(Deserialize)]
+#[serde(remote = "AdvisoryCandidate", deny_unknown_fields)]
+struct AdvisoryCandidateWire {
+    pub advisory_candidate_id: AdvisoryCandidateId,
+    pub schema_version: String,
+    pub candidate_kind: CandidateKind,
+    pub lifecycle_state: CandidateLifecycleState,
+    pub version: u64,
+    /// Typed references jointly describe target or scope, as in the ticket sketch.
+    pub target_refs: Vec<ObjectRef>,
+    pub normalized_proposal: serde_json::Value,
+    pub payload: CandidatePayload,
+    pub evidence_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
+    pub field_provenance: BTreeMap<String, String>,
+    pub proposed_at: UbuTimestamp,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effective_time: Option<UbuTimestamp>,
+    pub proposing_actor: ProposingActor,
+    pub origin_device_id: DeviceId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_context: Option<ExecutionContext>,
+    pub idempotency_key: IdempotencyKey,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suppression_key: Option<String>,
+    #[serde(deserialize_with = "deserialize_unique_ids")]
+    pub compartment_ids: BTreeSet<UbuId>,
+    pub review_label: ReviewLabel,
+    pub disclosure_policy: DisclosurePolicy,
+    pub retention_policy: RetentionPolicy,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_order: Option<i64>,
+    pub links: CandidateLinks,
+}
+
+impl<'de> Deserialize<'de> for AdvisoryCandidate {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let candidate = AdvisoryCandidateWire::deserialize(deserializer)?;
+        candidate.validate().map_err(D::Error::custom)?;
+        Ok(candidate)
+    }
+}
+
+fn deserialize_unique_ids<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<BTreeSet<UbuId>, D::Error> {
+    let mut ids = BTreeSet::new();
+    for id in Vec::<UbuId>::deserialize(deserializer)? {
+        if !ids.insert(id) {
+            return Err(D::Error::custom("duplicate Compartment id"));
+        }
+    }
+    Ok(ids)
+}
+
+impl AdvisoryCandidate {
+    pub fn validate(&self) -> crate::Result<()> {
+        if self
+            .confidence
+            .is_some_and(|value| !(0.0..=1.0).contains(&value))
+        {
+            return Err(UbuError::InvalidCandidateRecord {
+                field: "confidence",
+            });
+        }
+        if self.version == 0 {
+            return Err(UbuError::InvalidCandidateRecord { field: "version" });
+        }
+        if self.schema_version.is_empty() {
+            return Err(UbuError::InvalidCandidateRecord {
+                field: "schema_version",
+            });
+        }
+        for id in &self.compartment_ids {
+            // The sketch requests parseable UbuIds, not a new Compartment-only constraint.
+            UbuId::parse(id.as_str())?;
+        }
+        if self.lifecycle_state == CandidateLifecycleState::Resurfaced
+            && (self
+                .links
+                .prior_deferral_ref
+                .as_ref()
+                .is_none_or(String::is_empty)
+                || self.links.resurface_trigger.is_none())
+        {
+            return Err(UbuError::InvalidCandidateRecord { field: "links" });
+        }
+        Ok(())
+    }
 }

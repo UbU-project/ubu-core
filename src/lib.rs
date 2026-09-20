@@ -20,8 +20,8 @@ pub mod validation;
 pub mod worker;
 
 pub use advisory_candidate::{
-    transition, AdvisoryCandidateId, CandidateKind, CandidateLifecycleState, DisclosurePolicy,
-    ResurfaceTrigger, RetentionPolicy,
+    transition, AdvisoryCandidate, AdvisoryCandidateId, CandidateLinks, CandidatePayload, CandidateKind, CandidateLifecycleState, DisclosurePolicy,
+    ProposingActor, ResurfaceTrigger, RetentionPolicy, ReviewLabel,
 };
 pub use authority::AuthoritySource;
 pub use compartment_label::CompartmentLabel;

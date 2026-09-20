@@ -4,6 +4,9 @@ pub type Result<T> = std::result::Result<T, UbuError>;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
+    #[error("invalid advisory candidate field `{field}`")]
+    InvalidCandidateRecord { field: &'static str },
+
     #[error("invalid candidate transition from {current:?} to {next:?}")]
     InvalidCandidateTransition {
         current: crate::advisory_candidate::CandidateLifecycleState,
