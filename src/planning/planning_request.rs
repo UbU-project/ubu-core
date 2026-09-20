@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::authority::AuthoritySource;
+use crate::core::Task;
 use crate::core::{Objective, UniverseState};
 use crate::serde_helpers::Duration;
 use crate::time::UbuTimestamp;
@@ -15,6 +16,22 @@ pub struct TaskSpec {
     pub objective_id: Option<UbuId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub estimate: Option<Duration>,
+}
+
+impl From<&Task> for TaskSpec {
+    fn from(task: &Task) -> Self {
+        Self {
+            title: task.title.clone(),
+            description: task.description.clone(),
+            objective_id: task.objective_id.clone(),
+            estimate: task.duration_estimate.as_ref().map(|estimate| {
+                crate::serde_helpers::Duration {
+                    seconds: estimate.scalar_seconds(),
+                    iso8601: None,
+                }
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
