@@ -1,0 +1,35 @@
+{
+  "candidate_kind": "tag",
+  "normalized_proposal": {
+    "operation": "add_tag",
+    "tag": "focus"
+  },
+  "target_and_scope_shape": [
+    {
+      "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+      "object_type": "Task"
+    }
+  ],
+  "compartment_ids": [
+    "comp_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f"
+  ],
+  "review_label": {
+    "kind": "label",
+    "value": "Personal"
+  },
+  "evidence_hashes_or_source_fingerprints": [
+    "source-fingerprint:task-description:v1"
+  ],
+  "proposing_actor": {
+    "model_or_tool_name": "local-advisory-tag-extractor",
+    "version": "1.0",
+    "prompt_template_digest": "sha256:7fd123"
+  },
+  "schema_version": "1.0",
+  "rejection_reason_or_user_correction": "Do not infer focus tags from this description.",
+  "deciding_actor_identity_id": "identity_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "authority_source": "user",
+  "decided_at": "2026-09-19T10:00:00Z",
+  "retention_policy": "purge_payload",
+  "suppression_key": "tag:focus:task-description:v1"
+}

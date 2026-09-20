@@ -5,7 +5,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
 use ubu_core::core::{ExternalReference, LogEntry, Objective, Snapshot, Task};
-use ubu_core::DeviceRegistration;
+use ubu_core::{AdvisoryCandidate, DeviceRegistration, SuppressionRecord};
 use ubu_core::planning::{
     PlanningRequest, PlanningResponse, RepairRequest, RepairResponse,
     PLANNING_KERNEL_CONTRACT_VERSION,
@@ -179,5 +179,34 @@ fn rejects_invalid_device_registration_fixtures() {
         assert_fixture_rejected::<DeviceRegistration>(&format!(
             "invalid/core/device-registration/{case}.json"
         ));
+    }
+}
+
+#[test]
+fn advisory_candidate_fixtures_round_trip_byte_identically() {
+    for case in ["proposed-tag", "deferred", "resurfaced", "redacted-payload"] {
+        let relative = format!("valid/core/advisory-candidate/{case}.json");
+        round_trip_fixture::<AdvisoryCandidate>(&relative);
+        let original = fs::read_to_string(resolve_fixture(&relative)).unwrap();
+        let candidate: AdvisoryCandidate = serde_json::from_str(&original).unwrap();
+        candidate.validate().unwrap();
+        assert_eq!(format!("{}\n", serde_json::to_string_pretty(&candidate).unwrap()), original);
+    }
+}
+
+#[test]
+fn suppression_record_fixture_round_trips_byte_identically() {
+    let relative = "valid/core/suppression-record/rejected-tag.json";
+    round_trip_fixture::<SuppressionRecord>(relative);
+    let original = fs::read_to_string(resolve_fixture(relative)).unwrap();
+    let record: SuppressionRecord = serde_json::from_str(&original).unwrap();
+    record.validate().unwrap();
+    assert_eq!(format!("{}\n", serde_json::to_string_pretty(&record).unwrap()), original);
+}
+
+#[test]
+fn rejects_invalid_advisory_candidate_fixtures() {
+    for case in ["out-of-range-confidence", "missing-required-field", "unknown-lifecycle-state"] {
+        assert_fixture_rejected::<AdvisoryCandidate>(&format!("invalid/core/advisory-candidate/{case}.json"));
     }
 }

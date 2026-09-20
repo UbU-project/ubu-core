@@ -1,0 +1,57 @@
+{
+  "advisory_candidate_id": "advcand_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "schema_version": "1.0",
+  "candidate_kind": "tag",
+  "lifecycle_state": "proposed",
+  "version": 1,
+  "target_refs": [
+    {
+      "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+      "object_type": "Task"
+    }
+  ],
+  "normalized_proposal": {
+    "operation": "add_tag",
+    "tag": "focus"
+  },
+  "payload": {
+    "kind": "inline",
+    "value": {
+      "rationale": "A focused work block is needed.",
+      "tag": "focus"
+    }
+  },
+  "evidence_refs": [
+    "source:task-description:v1"
+  ],
+  "confidence": 1.5,
+  "field_provenance": {
+    "tag": "local-advisory:tag-extractor:1.0"
+  },
+  "proposed_at": "2026-09-19T09:00:00Z",
+  "effective_time": "2026-09-19T09:00:00Z",
+  "proposing_actor": {
+    "model_or_tool_name": "local-advisory-tag-extractor",
+    "version": "1.0",
+    "prompt_template_digest": "sha256:7fd123"
+  },
+  "origin_device_id": "dev_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "execution_context": {
+    "context_label": "advisory",
+    "backend_id": "local",
+    "provider_id": "local"
+  },
+  "idempotency_key": "proposal-tag-001",
+  "suppression_key": "tag:focus:task-description:v1",
+  "compartment_ids": [
+    "comp_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f"
+  ],
+  "review_label": {
+    "kind": "label",
+    "value": "Personal"
+  },
+  "disclosure_policy": "compartment_only",
+  "retention_policy": "retain",
+  "review_order": 1,
+  "links": {}
+}
