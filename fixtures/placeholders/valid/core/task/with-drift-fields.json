@@ -1,0 +1,15 @@
+{
+  "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "title": "Review dependency",
+  "status": "active",
+  "assignee": {"id": "identity_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f", "subject_key": "operator@example", "kind": "person"},
+  "blocked_by": ["task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7e"],
+  "duration_estimate": {
+    "type": "shifted_lognormal_p95",
+    "min_seconds": 60,
+    "mode_seconds": 300,
+    "p95_seconds": 900
+  },
+  "correlation_groups": [{"group": "morning-review", "strength": 0.75}],
+  "provenance": {"created_at": "2026-09-19T09:00:00Z", "authority_source": "user"}
+}

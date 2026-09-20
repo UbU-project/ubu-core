@@ -92,6 +92,8 @@ fn round_trips_canonical_or_placeholder_fixtures() {
 
     round_trip_fixture::<Task>("valid/core/task/basic.json");
     round_trip_fixture::<Task>("valid/core/task/with-effects.json");
+    round_trip_fixture::<Task>("valid/core/task/with-drift-fields.json");
+    round_trip_fixture::<Task>("valid/core/task/tagged.json");
     round_trip_fixture::<Objective>("valid/core/objective/basic.json");
     round_trip_fixture::<ExternalReference>("valid/core/external-reference/basic.json");
     round_trip_fixture::<LogEntry>("valid/core/log-entry/basic.json");
@@ -132,6 +134,29 @@ fn rejects_stale_snapshot_tolerance_fields_fixture() {
 #[test]
 fn rejects_task_effects_unknown_field_fixture() {
     assert_fixture_rejected::<Task>("invalid/core/task/effects-unknown-field.json");
+}
+
+#[test]
+fn rejects_new_invalid_task_fixtures() {
+    for case in ["duplicate-tags", "invalid-duration-order"] {
+        assert_fixture_rejected::<Task>(&format!("invalid/core/task/{case}.json"));
+    }
+}
+
+#[test]
+fn pre_ticket_task_payload_round_trips_byte_identically() {
+    let relative = "valid/core/task/basic.json";
+    let original = fs::read_to_string(resolve_fixture(relative)).unwrap();
+    let task: Task = serde_json::from_str(&original).unwrap();
+    assert!(task.assignee.is_none());
+    assert!(task.blocked_by.is_empty());
+    assert!(task.duration_estimate.is_none());
+    assert!(task.correlation_groups.is_empty());
+    assert!(task.tags.is_empty());
+    assert_eq!(
+        format!("{}\n", serde_json::to_string_pretty(&task).unwrap()),
+        original
+    );
 }
 
 #[test]
