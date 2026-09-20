@@ -1,0 +1,16 @@
+{
+  "submission_id": "local-tag-001",
+  "authority": { "worker_id": "worker_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f", "authority_source": "automation_worker", "granted": [{ "propose_candidate": "tag" }] },
+  "payload": { "task_summary": "prepare focus block" },
+  "expected_result_schema": "https://schemas.ubunow.net/phase1/worker/local-advisory-result.schema.json",
+  "timeout_ms": 1000,
+  "compute_budget": { "max_cpu_ms": 500, "max_memory_bytes": 1048576 },
+  "result_size_limit_bytes": 65536,
+  "partial_results_allowed": true,
+  "causal_parents": ["task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f"],
+  "observed_policy_versions": { "advisory": "v1" },
+  "input_digests": { "task": "sha256:abc" },
+  "provider_config": { "provider_name": "local", "provider_version": "1", "model_name": "tagger", "model_version": "1" },
+  "origin_device_id": "dev_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "submitted_at": "2026-09-19T09:00:00Z"
+}

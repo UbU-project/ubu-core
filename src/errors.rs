@@ -6,6 +6,10 @@ pub type Result<T> = std::result::Result<T, UbuError>;
 pub enum UbuError {
     #[error("invalid local advisory field `{field}`")]
     InvalidLocalAdvisory { field: &'static str },
+    #[error("advisory capability is not granted for candidate kind `{kind}`")]
+    UngrantedAdvisoryCapability { kind: String },
+    #[error("local advisory result exceeds result_size_limit_bytes")]
+    AdvisoryResultTooLarge,
 
     #[error("suppression requires a rejected candidate, got {state:?}")]
     CandidateNotRejected {
@@ -57,7 +61,9 @@ pub enum UbuError {
     #[error("policy-dependent mutation requires non-empty observed_policy_versions")]
     MissingObservedPolicyVersions,
 
-    #[error("idempotency_key_conflict for device `{origin_device_id}` and key `{idempotency_key}`")]
+    #[error(
+        "idempotency_key_conflict for device `{origin_device_id}` and key `{idempotency_key}`"
+    )]
     IdempotencyKeyConflict {
         origin_device_id: String,
         idempotency_key: String,

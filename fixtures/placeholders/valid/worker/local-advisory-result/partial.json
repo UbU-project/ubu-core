@@ -1,0 +1,6 @@
+{
+  "submission_id": "local-tag-001",
+  "authority": { "worker_id": "worker_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f", "authority_source": "automation_worker", "granted": [{ "propose_candidate": "tag" }] },
+  "provider_config": { "provider_name": "local", "provider_version": "1", "model_name": "tagger", "model_version": "1" },
+  "observed_policy_versions": { "advisory": "v1" }, "input_digests": { "task": "sha256:abc" }, "status": "partial", "artifacts": [], "proposed_candidates": [], "diagnostics": [{ "code": "truncated" }], "telemetry": []
+}

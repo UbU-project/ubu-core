@@ -42,3 +42,7 @@ pub use store::{
     IdempotencyKey, LocalIssuer, MutationEnvelope, MutationKey, VersionRef,
 };
 pub use time::UbuTimestamp;
+pub use worker::{
+    AdvisoryCapability, AdvisoryTransport, ComputeBudget, LocalAdvisoryResult,
+    LocalAdvisoryResultStatus, LocalAdvisorySubmission, ProviderConfig, WorkerAuthority,
+};

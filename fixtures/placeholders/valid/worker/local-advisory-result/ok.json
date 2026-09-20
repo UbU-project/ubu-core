@@ -1,0 +1,18 @@
+{
+  "submission_id": "local-tag-001",
+  "authority": { "worker_id": "worker_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f", "authority_source": "automation_worker", "granted": [{ "propose_candidate": "tag" }] },
+  "provider_config": { "provider_name": "local", "provider_version": "1", "model_name": "tagger", "model_version": "1" },
+  "observed_policy_versions": { "advisory": "v1" },
+  "input_digests": { "task": "sha256:abc" },
+  "status": "ok",
+  "artifacts": [{ "tag": "focus" }],
+  "proposed_candidates": [{
+    "advisory_candidate_id": "advcand_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f", "schema_version": "1.0", "candidate_kind": "tag", "lifecycle_state": "proposed", "version": 1,
+    "target_refs": [{ "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f", "object_type": "Task" }], "normalized_proposal": { "tag": "focus" },
+    "payload": { "kind": "inline", "value": { "tag": "focus" } }, "evidence_refs": ["source:task:v1"], "confidence": 0.8, "field_provenance": { "tag": "local:1" },
+    "proposed_at": "2026-09-19T09:00:00Z", "effective_time": "2026-09-19T09:00:00Z", "proposing_actor": { "model_or_tool_name": "tagger", "version": "1" },
+    "origin_device_id": "dev_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f", "idempotency_key": "tag-001", "compartment_ids": ["comp_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f"],
+    "review_label": { "kind": "label", "value": "Personal" }, "disclosure_policy": "compartment_only", "retention_policy": "retain", "links": {}
+  }],
+  "diagnostics": [], "telemetry": []
+}

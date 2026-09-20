@@ -5,7 +5,6 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
 use ubu_core::core::{ExternalReference, LogEntry, Objective, Snapshot, Task};
-use ubu_core::{AdvisoryCandidate, DeviceRegistration, SuppressionRecord};
 use ubu_core::planning::{
     PlanningRequest, PlanningResponse, RepairRequest, RepairResponse,
     PLANNING_KERNEL_CONTRACT_VERSION,
@@ -13,7 +12,10 @@ use ubu_core::planning::{
 use ubu_core::policy_summary::PolicySummary;
 use ubu_core::projection::ProjectionPreview;
 use ubu_core::store::{MutationEnvelope, RecalculationTrigger};
-use ubu_core::worker::{GpuAdvisoryRequest, GpuAdvisoryResponse};
+use ubu_core::worker::{
+    GpuAdvisoryRequest, GpuAdvisoryResponse, LocalAdvisoryResult, LocalAdvisorySubmission,
+};
+use ubu_core::{AdvisoryCandidate, DeviceRegistration, SuppressionRecord};
 
 fn fixture_root() -> PathBuf {
     PathBuf::from(env!("UBU_SCHEMAS_FIXTURES"))
@@ -105,6 +107,14 @@ fn round_trips_canonical_or_placeholder_fixtures() {
     round_trip_fixture::<ProjectionPreview>("valid/projection/projection-preview/basic.json");
     round_trip_fixture::<GpuAdvisoryRequest>("valid/worker/gpu-advisory-request/basic.json");
     round_trip_fixture::<GpuAdvisoryResponse>("valid/worker/gpu-advisory-response/basic.json");
+    round_trip_fixture::<LocalAdvisorySubmission>(
+        "valid/worker/local-advisory-submission/tag-proposal.json",
+    );
+    for case in ["ok", "partial", "timeout"] {
+        round_trip_fixture::<LocalAdvisoryResult>(&format!(
+            "valid/worker/local-advisory-result/{case}.json"
+        ));
+    }
 }
 
 #[test]
@@ -122,6 +132,13 @@ fn rejects_stale_snapshot_tolerance_fields_fixture() {
 #[test]
 fn rejects_task_effects_unknown_field_fixture() {
     assert_fixture_rejected::<Task>("invalid/core/task/effects-unknown-field.json");
+}
+
+#[test]
+fn rejects_timeout_result_with_candidates_fixture() {
+    assert_fixture_rejected::<LocalAdvisoryResult>(
+        "invalid/worker/local-advisory-result/timeout-with-candidates.json",
+    );
 }
 
 #[test]
@@ -175,7 +192,11 @@ fn device_registration_fixtures_round_trip_byte_identically() {
 
 #[test]
 fn rejects_invalid_device_registration_fixtures() {
-    for case in ["non-identity-prefix", "missing-required-field", "zone-id-array"] {
+    for case in [
+        "non-identity-prefix",
+        "missing-required-field",
+        "zone-id-array",
+    ] {
         assert_fixture_rejected::<DeviceRegistration>(&format!(
             "invalid/core/device-registration/{case}.json"
         ));
