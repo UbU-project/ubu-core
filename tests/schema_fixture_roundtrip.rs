@@ -190,7 +190,10 @@ fn advisory_candidate_fixtures_round_trip_byte_identically() {
         let original = fs::read_to_string(resolve_fixture(&relative)).unwrap();
         let candidate: AdvisoryCandidate = serde_json::from_str(&original).unwrap();
         candidate.validate().unwrap();
-        assert_eq!(format!("{}\n", serde_json::to_string_pretty(&candidate).unwrap()), original);
+        assert_eq!(
+            format!("{}\n", serde_json::to_string_pretty(&candidate).unwrap()),
+            original
+        );
     }
 }
 
@@ -201,12 +204,21 @@ fn suppression_record_fixture_round_trips_byte_identically() {
     let original = fs::read_to_string(resolve_fixture(relative)).unwrap();
     let record: SuppressionRecord = serde_json::from_str(&original).unwrap();
     record.validate().unwrap();
-    assert_eq!(format!("{}\n", serde_json::to_string_pretty(&record).unwrap()), original);
+    assert_eq!(
+        format!("{}\n", serde_json::to_string_pretty(&record).unwrap()),
+        original
+    );
 }
 
 #[test]
 fn rejects_invalid_advisory_candidate_fixtures() {
-    for case in ["out-of-range-confidence", "missing-required-field", "unknown-lifecycle-state"] {
-        assert_fixture_rejected::<AdvisoryCandidate>(&format!("invalid/core/advisory-candidate/{case}.json"));
+    for case in [
+        "out-of-range-confidence",
+        "missing-required-field",
+        "unknown-lifecycle-state",
+    ] {
+        assert_fixture_rejected::<AdvisoryCandidate>(&format!(
+            "invalid/core/advisory-candidate/{case}.json"
+        ));
     }
 }

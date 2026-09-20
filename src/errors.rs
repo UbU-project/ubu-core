@@ -5,7 +5,9 @@ pub type Result<T> = std::result::Result<T, UbuError>;
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
     #[error("suppression requires a rejected candidate, got {state:?}")]
-    CandidateNotRejected { state: crate::advisory_candidate::CandidateLifecycleState },
+    CandidateNotRejected {
+        state: crate::advisory_candidate::CandidateLifecycleState,
+    },
 
     #[error("invalid suppression record field `{field}`")]
     InvalidSuppressionRecord { field: &'static str },

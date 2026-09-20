@@ -468,3 +468,432 @@ impl AdvisoryCandidate {
         Ok(record)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    const STATES: [CandidateLifecycleState; 7] = [
+        CandidateLifecycleState::Proposed,
+        CandidateLifecycleState::Deferred,
+        CandidateLifecycleState::Resurfaced,
+        CandidateLifecycleState::Admitted,
+        CandidateLifecycleState::Rejected,
+        CandidateLifecycleState::Superseded,
+        CandidateLifecycleState::Archived,
+    ];
+
+    fn candidate() -> AdvisoryCandidate {
+        serde_json::from_str(include_str!(
+            "../fixtures/placeholders/valid/core/advisory-candidate/proposed-tag.json"
+        ))
+        .unwrap()
+    }
+
+    fn decision() -> SuppressionDecision {
+        SuppressionDecision {
+            deciding_actor_identity_id: UbuId::parse("identity_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f")
+                .unwrap(),
+            authority_source: AuthoritySource::User,
+            decided_at: UbuTimestamp::parse("2026-09-19T10:00:00Z").unwrap(),
+            rejection_reason_or_user_correction: "Do not infer focus tags from this description."
+                .into(),
+            retention_policy: RetentionPolicy::PurgePayload,
+            evidence_hashes_or_source_fingerprints: vec![
+                "source-fingerprint:task-description:v1".into()
+            ],
+        }
+    }
+
+    #[test]
+    fn every_lifecycle_pair_matches_the_exact_decision_matrix() {
+        // Rows/columns use STATES order; all 49 pairs, including self-edges.
+        let allowed = [
+            [false, true, false, true, true, true, true],
+            [false, false, true, false, true, true, true],
+            [false, true, false, true, true, true, true],
+            [false, false, false, false, false, false, true],
+            [false, false, false, false, false, false, true],
+            [false, false, false, false, false, false, true],
+            [false, false, false, false, false, false, false],
+        ];
+        for (row, current) in STATES.into_iter().enumerate() {
+            for (column, next) in STATES.into_iter().enumerate() {
+                let expected = allowed[row][column];
+                assert_eq!(
+                    current.can_transition_to(next),
+                    expected,
+                    "{current:?} -> {next:?}"
+                );
+                let trigger = (next == CandidateLifecycleState::Resurfaced)
+                    .then_some(ResurfaceTrigger::UserRequest);
+                let result = transition(current, next, trigger);
+                if expected {
+                    assert_eq!(result, Ok(next));
+                } else {
+                    assert_eq!(
+                        result,
+                        Err(UbuError::InvalidCandidateTransition { current, next })
+                    );
+                }
+            }
+        }
+        use CandidateLifecycleState::*;
+        assert!(transition(Deferred, Admitted, None).is_err());
+        assert!(transition(Rejected, Proposed, None).is_err());
+        for next in STATES {
+            assert!(transition(Archived, next, None).is_err());
+        }
+    }
+
+    #[test]
+    fn resurfacing_requires_one_of_the_five_triggers_only_on_that_edge() {
+        use CandidateLifecycleState::*;
+        let triggers = [
+            ResurfaceTrigger::MateriallyNewEvidence,
+            ResurfaceTrigger::UserRequest,
+            ResurfaceTrigger::PolicyReviewInterval,
+            ResurfaceTrigger::AcceptedChangeToTargetOrDependencies,
+            ResurfaceTrigger::ClarificationOrExternalReferenceArrival,
+        ];
+        assert_eq!(
+            transition(Deferred, Resurfaced, None),
+            Err(UbuError::InvalidResurfaceTrigger {
+                current: Deferred,
+                next: Resurfaced,
+            })
+        );
+        for trigger in triggers {
+            assert_eq!(
+                transition(Deferred, Resurfaced, Some(trigger)),
+                Ok(Resurfaced)
+            );
+            for current in STATES {
+                for next in STATES {
+                    if current.can_transition_to(next) && next != Resurfaced {
+                        assert_eq!(
+                            transition(current, next, Some(trigger)),
+                            Err(UbuError::InvalidResurfaceTrigger { current, next })
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn initial_terminal_and_queue_membership_are_exact() {
+        use CandidateLifecycleState::*;
+        assert_eq!(CandidateLifecycleState::INITIAL, Proposed);
+        for state in STATES {
+            assert_eq!(state.is_terminal(), state == Archived);
+            assert_eq!(
+                state.is_active_queue(),
+                [Proposed, Resurfaced].contains(&state)
+            );
+        }
+    }
+
+    #[test]
+    fn confidence_bounds_reject_nonfinite_and_out_of_range_values() {
+        for confidence in [1.5, -0.1, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let mut value = candidate();
+            value.confidence = Some(confidence);
+            assert_eq!(
+                value.validate(),
+                Err(UbuError::InvalidCandidateRecord {
+                    field: "confidence"
+                })
+            );
+        }
+        for confidence in [None, Some(0.0), Some(1.0)] {
+            let mut value = candidate();
+            value.confidence = confidence;
+            value.validate().unwrap();
+            let bytes = serde_json::to_vec(&value).unwrap();
+            assert_eq!(
+                serde_json::from_slice::<AdvisoryCandidate>(&bytes).unwrap(),
+                value
+            );
+        }
+    }
+
+    #[test]
+    fn candidate_validation_requires_version_schema_and_resurfacing_links() {
+        let mut value = candidate();
+        value.version = 0;
+        assert_eq!(
+            value.validate(),
+            Err(UbuError::InvalidCandidateRecord { field: "version" })
+        );
+        assert!(
+            serde_json::from_value::<AdvisoryCandidate>(serde_json::to_value(&value).unwrap())
+                .is_err()
+        );
+        value.version = 1;
+        value.schema_version.clear();
+        assert_eq!(
+            value.validate(),
+            Err(UbuError::InvalidCandidateRecord {
+                field: "schema_version"
+            })
+        );
+        value.schema_version = "1.0".into();
+        value.lifecycle_state = CandidateLifecycleState::Resurfaced;
+        value.links.resurface_trigger = Some(ResurfaceTrigger::UserRequest);
+        for prior in [None, Some(String::new())] {
+            value.links.prior_deferral_ref = prior;
+            assert_eq!(
+                value.validate(),
+                Err(UbuError::InvalidCandidateRecord { field: "links" })
+            );
+            assert!(serde_json::from_value::<AdvisoryCandidate>(
+                serde_json::to_value(&value).unwrap()
+            )
+            .is_err());
+        }
+        value.links.prior_deferral_ref = Some("decision:defer:001".into());
+        value.validate().unwrap();
+        value.links.resurface_trigger = None;
+        assert!(value.validate().is_err());
+    }
+
+    #[test]
+    fn candidate_wire_rejects_bad_or_duplicate_ids_and_unknown_fields() {
+        for ids in [
+            json!(["not-an-id"]),
+            json!([
+                "comp_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+                "comp_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f"
+            ]),
+        ] {
+            let mut value = serde_json::to_value(candidate()).unwrap();
+            value["compartment_ids"] = ids;
+            assert!(serde_json::from_value::<AdvisoryCandidate>(value).is_err());
+        }
+        let mut value = serde_json::to_value(candidate()).unwrap();
+        value["admitted"] = json!(true);
+        assert!(serde_json::from_value::<AdvisoryCandidate>(value).is_err());
+    }
+
+    #[test]
+    fn generated_candidate_ids_are_unique_v7_and_outside_admitted_registry() {
+        let mut ids = BTreeSet::new();
+        for _ in 0..256 {
+            let id = AdvisoryCandidateId::generate();
+            let suffix = id.as_str().strip_prefix("advcand_").unwrap();
+            assert_eq!(suffix.len(), 32);
+            assert_eq!(Uuid::parse_str(suffix).unwrap().get_version_num(), 7);
+            assert_eq!(AdvisoryCandidateId::parse(id.as_str()).unwrap(), id);
+            assert_eq!(
+                serde_json::from_value::<AdvisoryCandidateId>(json!(id)).unwrap(),
+                id
+            );
+            assert!(UbuId::parse(id.as_str()).is_err());
+            assert!(ids.insert(id));
+        }
+        for invalid in [
+            "",
+            "advcand_",
+            "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+            "advcand_018f3c8e9b2a4c4d8f1e2a3b4c5d6e7f",
+            "advcand_018f3c8e9b2a7c4d0f1e2a3b4c5d6e7f",
+            "advcand_018F3C8E9B2A7C4D8F1E2A3B4C5D6E7F",
+            "advcand_018f3c8e-9b2a-7c4d-8f1e-2a3b4c5d6e7f",
+            "advcand_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f\n",
+        ] {
+            assert!(matches!(
+                AdvisoryCandidateId::parse(invalid),
+                Err(UbuError::InvalidAdvisoryCandidateId { .. })
+            ));
+        }
+    }
+
+    #[test]
+    fn suppression_builder_preserves_metadata_and_omits_rejected_payload() {
+        let mut candidate = candidate();
+        candidate.lifecycle_state = CandidateLifecycleState::Rejected;
+        let before = candidate.clone();
+        let record = candidate.suppression_record(decision()).unwrap();
+        assert_eq!(candidate, before);
+        assert_eq!(record.candidate_kind, candidate.candidate_kind);
+        assert_eq!(record.normalized_proposal, candidate.normalized_proposal);
+        assert_eq!(
+            Some(&record.suppression_key),
+            candidate.suppression_key.as_ref()
+        );
+        assert_eq!(record.target_and_scope_shape, candidate.target_refs);
+        assert_eq!(record.compartment_ids, candidate.compartment_ids);
+        assert_eq!(record.review_label, candidate.review_label);
+        assert_eq!(record.proposing_actor, candidate.proposing_actor);
+        let expected = include_str!(
+            "../fixtures/placeholders/valid/core/suppression-record/rejected-tag.json"
+        );
+        assert_eq!(
+            format!("{}\n", serde_json::to_string_pretty(&record).unwrap()),
+            expected
+        );
+        let wire = serde_json::to_value(&record).unwrap();
+        assert!(wire.get("payload").is_none());
+        assert!(wire.get("evidence_refs").is_none());
+        candidate.payload = CandidatePayload::RedactedSummary("Purged".into());
+        assert_eq!(candidate.suppression_record(decision()).unwrap(), record);
+    }
+
+    #[test]
+    fn suppression_builder_requires_rejection_key_and_identity_actor() {
+        let mut candidate = candidate();
+        for state in STATES {
+            candidate.lifecycle_state = state;
+            let result = candidate.suppression_record(decision());
+            if state == CandidateLifecycleState::Rejected {
+                assert!(result.is_ok());
+            } else {
+                assert!(result.is_err());
+            }
+        }
+        candidate.lifecycle_state = CandidateLifecycleState::Rejected;
+        let mut non_identity = decision();
+        non_identity.deciding_actor_identity_id = UbuId::new(ObjectType::Task);
+        assert!(matches!(
+            candidate.suppression_record(non_identity),
+            Err(UbuError::WrongIdObjectType { .. })
+        ));
+        let mut record = candidate.suppression_record(decision()).unwrap();
+        record.deciding_actor_identity_id = UbuId::new(ObjectType::Task);
+        assert!(record.validate().is_err());
+        assert!(
+            serde_json::from_value::<SuppressionRecord>(serde_json::to_value(record).unwrap())
+                .is_err()
+        );
+        for key in [None, Some(String::new())] {
+            candidate.suppression_key = key;
+            assert_eq!(
+                candidate.suppression_record(decision()),
+                Err(UbuError::InvalidSuppressionRecord {
+                    field: "suppression_key"
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn payload_variants_round_trip_without_redaction_type_confusion() {
+        let original = include_str!(
+            "../fixtures/placeholders/valid/core/advisory-candidate/redacted-payload.json"
+        );
+        let mut candidate: AdvisoryCandidate = serde_json::from_str(original).unwrap();
+        assert!(matches!(
+            &candidate.payload,
+            CandidatePayload::RedactedSummary(_)
+        ));
+        assert_eq!(candidate.review_label, ReviewLabel::Redacted);
+        assert_eq!(
+            format!("{}\n", serde_json::to_string_pretty(&candidate).unwrap()),
+            original
+        );
+        for payload in [
+            CandidatePayload::Inline(json!("A summary-like inline string")),
+            CandidatePayload::Inline(json!({"kind": "redacted_summary", "value": "nested"})),
+            CandidatePayload::Inline(serde_json::Value::Null),
+            CandidatePayload::RedactedSummary("private".into()),
+        ] {
+            candidate.payload = payload.clone();
+            let bytes = serde_json::to_vec(&candidate).unwrap();
+            let restored: AdvisoryCandidate = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(restored.payload, payload);
+            assert_eq!(serde_json::to_vec(&restored).unwrap(), bytes);
+        }
+        for wire in [
+            json!({"kind":"redacted_summary","value":{}}),
+            json!({"kind":"unknown","value":"private"}),
+            json!({"kind":"inline","value":{},"extra":"private"}),
+        ] {
+            assert!(serde_json::from_value::<CandidatePayload>(wire).is_err());
+        }
+    }
+
+    #[test]
+    fn candidate_vocabularies_have_the_documented_wire_spellings() {
+        for (kind, wire) in [
+            (CandidateKind::Tag, "tag"),
+            (CandidateKind::Dependency, "dependency"),
+            (CandidateKind::Preference, "preference"),
+            (CandidateKind::Decomposition, "decomposition"),
+            (
+                CandidateKind::ClarificationQuestion,
+                "clarification_question",
+            ),
+        ] {
+            assert_eq!(serde_json::to_value(kind).unwrap(), json!(wire));
+            assert_eq!(
+                serde_json::from_value::<CandidateKind>(json!(wire)).unwrap(),
+                kind
+            );
+        }
+        for (state, wire) in STATES.into_iter().zip([
+            "proposed",
+            "deferred",
+            "resurfaced",
+            "admitted",
+            "rejected",
+            "superseded",
+            "archived",
+        ]) {
+            assert_eq!(serde_json::to_value(state).unwrap(), json!(wire));
+            assert_eq!(
+                serde_json::from_value::<CandidateLifecycleState>(json!(wire)).unwrap(),
+                state
+            );
+        }
+        for (trigger, wire) in [
+            (
+                ResurfaceTrigger::MateriallyNewEvidence,
+                "materially_new_evidence",
+            ),
+            (ResurfaceTrigger::UserRequest, "user_request"),
+            (
+                ResurfaceTrigger::PolicyReviewInterval,
+                "policy_review_interval",
+            ),
+            (
+                ResurfaceTrigger::AcceptedChangeToTargetOrDependencies,
+                "accepted_change_to_target_or_dependencies",
+            ),
+            (
+                ResurfaceTrigger::ClarificationOrExternalReferenceArrival,
+                "clarification_or_external_reference_arrival",
+            ),
+        ] {
+            assert_eq!(serde_json::to_value(trigger).unwrap(), json!(wire));
+            assert_eq!(
+                serde_json::from_value::<ResurfaceTrigger>(json!(wire)).unwrap(),
+                trigger
+            );
+        }
+        for (policy, wire) in [
+            (RetentionPolicy::Retain, "retain"),
+            (RetentionPolicy::PurgePayload, "purge_payload"),
+        ] {
+            assert_eq!(serde_json::to_value(policy).unwrap(), json!(wire));
+            assert_eq!(
+                serde_json::from_value::<RetentionPolicy>(json!(wire)).unwrap(),
+                policy
+            );
+        }
+        for (policy, wire) in [
+            (DisclosurePolicy::CompartmentOnly, "compartment_only"),
+            (DisclosurePolicy::RedactedOnly, "redacted_only"),
+        ] {
+            assert_eq!(serde_json::to_value(policy).unwrap(), json!(wire));
+            assert_eq!(
+                serde_json::from_value::<DisclosurePolicy>(json!(wire)).unwrap(),
+                policy
+            );
+        }
+        assert!(serde_json::from_value::<CandidateLifecycleState>(json!("accepted")).is_err());
+        assert!(serde_json::from_value::<DisclosurePolicy>(json!("public")).is_err());
+        assert!(serde_json::from_value::<RetentionPolicy>(json!("forever")).is_err());
+    }
+}
