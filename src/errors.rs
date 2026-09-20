@@ -93,4 +93,21 @@ pub enum UbuError {
 
     #[error("task status `{status}` forbids moot_reason_code")]
     UnexpectedMootReasonCode { status: &'static str },
+
+    #[error("Task assignee must be an Identity id")]
+    InvalidTaskAssignee,
+    #[error("Task blocked_by contains a duplicate Task id")]
+    DuplicateTaskBlockedBy,
+    #[error("Task cannot be blocked by itself")]
+    TaskSelfBlocked,
+    #[error("invalid Task duration_estimate")]
+    InvalidTaskDurationEstimate,
+    #[error("Task tags must not contain empty strings")]
+    EmptyTaskTag,
+    #[error("Task tags must be unique")]
+    DuplicateTaskTag,
+    #[error("Task correlation_groups must have unique group names")]
+    DuplicateTaskCorrelationGroup,
+    #[error("invalid Task correlation group strength")]
+    InvalidTaskCorrelationStrength,
 }
