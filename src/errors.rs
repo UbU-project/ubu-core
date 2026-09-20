@@ -4,6 +4,18 @@ pub type Result<T> = std::result::Result<T, UbuError>;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
+    #[error("invalid candidate transition from {current:?} to {next:?}")]
+    InvalidCandidateTransition {
+        current: crate::advisory_candidate::CandidateLifecycleState,
+        next: crate::advisory_candidate::CandidateLifecycleState,
+    },
+
+    #[error("resurface trigger must be supplied exactly when entering Resurfaced: {current:?} -> {next:?}")]
+    InvalidResurfaceTrigger {
+        current: crate::advisory_candidate::CandidateLifecycleState,
+        next: crate::advisory_candidate::CandidateLifecycleState,
+    },
+
     #[error("invalid advisory candidate id `{value}`")]
     InvalidAdvisoryCandidateId { value: String },
 

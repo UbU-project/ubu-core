@@ -20,7 +20,7 @@ pub mod validation;
 pub mod worker;
 
 pub use advisory_candidate::{
-    AdvisoryCandidateId, CandidateKind, CandidateLifecycleState, DisclosurePolicy,
+    transition, AdvisoryCandidateId, CandidateKind, CandidateLifecycleState, DisclosurePolicy,
     ResurfaceTrigger, RetentionPolicy,
 };
 pub use authority::AuthoritySource;

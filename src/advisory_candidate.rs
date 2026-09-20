@@ -99,3 +99,43 @@ pub enum DisclosurePolicy {
     CompartmentOnly,
     RedactedOnly,
 }
+
+impl CandidateLifecycleState {
+    pub const INITIAL: Self = Self::Proposed;
+
+    /// Structural edges only; `transition` additionally checks trigger placement.
+    pub fn can_transition_to(self, next: Self) -> bool {
+        use CandidateLifecycleState::*;
+        matches!(
+            (self, next),
+            (
+                Proposed | Resurfaced,
+                Admitted | Rejected | Deferred | Superseded | Archived
+            ) | (Deferred, Resurfaced | Rejected | Superseded | Archived)
+                | (Admitted | Rejected | Superseded, Archived)
+        )
+    }
+
+    pub fn is_terminal(self) -> bool {
+        self == Self::Archived
+    }
+
+    pub fn is_active_queue(self) -> bool {
+        matches!(self, Self::Proposed | Self::Resurfaced)
+    }
+}
+
+/// Apply exactly one UBU-D0274 edge, with a trigger only when resurfacing.
+pub fn transition(
+    current: CandidateLifecycleState,
+    next: CandidateLifecycleState,
+    trigger: Option<ResurfaceTrigger>,
+) -> crate::Result<CandidateLifecycleState> {
+    if !current.can_transition_to(next) {
+        return Err(UbuError::InvalidCandidateTransition { current, next });
+    }
+    if (next == CandidateLifecycleState::Resurfaced) != trigger.is_some() {
+        return Err(UbuError::InvalidResurfaceTrigger { current, next });
+    }
+    Ok(next)
+}
