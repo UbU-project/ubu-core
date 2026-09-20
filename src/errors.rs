@@ -4,6 +4,9 @@ pub type Result<T> = std::result::Result<T, UbuError>;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
+    #[error("invalid advisory candidate id `{value}`")]
+    InvalidAdvisoryCandidateId { value: String },
+
     #[error("zone id must not be empty")]
     EmptyZoneId,
 

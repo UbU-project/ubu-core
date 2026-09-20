@@ -1,3 +1,4 @@
+pub mod advisory_candidate;
 pub mod authority;
 pub mod compartment_label;
 pub mod core;
@@ -18,6 +19,10 @@ pub mod time;
 pub mod validation;
 pub mod worker;
 
+pub use advisory_candidate::{
+    AdvisoryCandidateId, CandidateKind, CandidateLifecycleState, DisclosurePolicy,
+    ResurfaceTrigger, RetentionPolicy,
+};
 pub use authority::AuthoritySource;
 pub use compartment_label::CompartmentLabel;
 pub use device::{DeviceKind, DeviceRegistration, DeviceRegistry, SyncState, TrustState, ZoneId};
