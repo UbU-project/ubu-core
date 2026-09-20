@@ -98,6 +98,8 @@ pub enum UbuError {
     InvalidTaskAssignee,
     #[error("Task blocked_by contains a duplicate Task id")]
     DuplicateTaskBlockedBy,
+    #[error("Task blocked_by contains a non-Task id")]
+    InvalidTaskBlockedBy,
     #[error("Task cannot be blocked by itself")]
     TaskSelfBlocked,
     #[error("invalid Task duration_estimate")]

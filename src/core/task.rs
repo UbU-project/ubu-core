@@ -198,7 +198,8 @@ impl Task {
         }
         let mut blocked = BTreeSet::new();
         for id in &self.blocked_by {
-            id.require_object_type(ObjectType::Task)?;
+            id.require_object_type(ObjectType::Task)
+                .map_err(|_| UbuError::InvalidTaskBlockedBy)?;
             if *id == self.id {
                 return Err(UbuError::TaskSelfBlocked);
             }
