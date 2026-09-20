@@ -5,6 +5,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
 use ubu_core::core::{ExternalReference, LogEntry, Objective, Snapshot, Task};
+use ubu_core::DeviceRegistration;
 use ubu_core::planning::{
     PlanningRequest, PlanningResponse, RepairRequest, RepairResponse,
     PLANNING_KERNEL_CONTRACT_VERSION,
@@ -155,4 +156,28 @@ fn rejects_leading_zero_mutation_version_fixture() {
     assert_fixture_rejected::<MutationEnvelope>(
         "invalid/store/mutation-envelope/leading-zero-version.json",
     );
+}
+
+#[test]
+fn device_registration_fixtures_round_trip_byte_identically() {
+    for case in ["phase1b-single-device", "revoked"] {
+        let relative = format!("valid/core/device-registration/{case}.json");
+        round_trip_fixture::<DeviceRegistration>(&relative);
+        let original = fs::read_to_string(resolve_fixture(&relative)).unwrap();
+        let registration: DeviceRegistration = serde_json::from_str(&original).unwrap();
+        registration.validate().unwrap();
+        assert_eq!(
+            format!("{}\n", serde_json::to_string_pretty(&registration).unwrap()),
+            original
+        );
+    }
+}
+
+#[test]
+fn rejects_invalid_device_registration_fixtures() {
+    for case in ["non-identity-prefix", "missing-required-field", "zone-id-array"] {
+        assert_fixture_rejected::<DeviceRegistration>(&format!(
+            "invalid/core/device-registration/{case}.json"
+        ));
+    }
 }

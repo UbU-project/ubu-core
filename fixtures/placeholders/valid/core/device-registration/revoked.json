@@ -1,0 +1,12 @@
+{
+  "device_id": "dev_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "label": "Dogfooding Device",
+  "kind": "os_user_profile",
+  "registered_at": "2026-09-19T09:00:00Z",
+  "registered_identity_id": "identity_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "trust_state": "revoked",
+  "sync_state": "local_only",
+  "zone_id": "local-workspace",
+  "capability_profile": [],
+  "compartment_access": []
+}
