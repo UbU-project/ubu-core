@@ -1,6 +1,6 @@
 //! Device registration material and registry semantics, without persistence or I/O.
 
-use std::collections::BTreeSet;
+use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -111,7 +111,7 @@ where
 
 impl DeviceRegistration {
     /// Validate registration inputs. Non-empty strings are not trimmed;
-    /// all three timestamps remain independent of registration validation.
+    /// registration and last-seen timestamps have no imposed ordering.
     pub fn validate(&self) -> crate::Result<()> {
         self.registered_identity_id
             .require_object_type(ObjectType::Identity)?;
@@ -149,5 +149,54 @@ impl DeviceId {
     pub fn generate() -> Self {
         Self::parse(format!("dev_{}", Uuid::now_v7().simple()))
             .expect("generated Device identifier is non-empty")
+    }
+}
+
+/// Pure in-memory registry. Deliberately exposes no singleton accessor:
+/// UBU-D0257 says a registry of one is not proof of global authority.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DeviceRegistry {
+    registrations: BTreeMap<DeviceId, DeviceRegistration>,
+}
+
+impl DeviceRegistry {
+    /// Build a registry from validated records, rejecting duplicate identifiers.
+    pub fn new(
+        registrations: impl IntoIterator<Item = DeviceRegistration>,
+    ) -> crate::Result<Self> {
+        let mut entries = BTreeMap::new();
+        for registration in registrations {
+            registration.validate()?;
+            match entries.entry(registration.device_id.clone()) {
+                Entry::Vacant(entry) => {
+                    entry.insert(registration);
+                }
+                Entry::Occupied(entry) => {
+                    return Err(UbuError::DuplicateDeviceId {
+                        device_id: entry.key().as_str().to_owned(),
+                    });
+                }
+            }
+        }
+        Ok(Self {
+            registrations: entries,
+        })
+    }
+
+    pub fn get(&self, device_id: &DeviceId) -> Option<&DeviceRegistration> {
+        self.registrations.get(device_id)
+    }
+
+    pub fn len(&self) -> usize {
+        self.registrations.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.registrations.is_empty()
+    }
+
+    /// Iterate all registrations in stable DeviceId order.
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &DeviceRegistration> {
+        self.registrations.values()
     }
 }

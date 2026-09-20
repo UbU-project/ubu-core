@@ -13,6 +13,9 @@ pub enum UbuError {
     #[error("device capability must not be empty")]
     EmptyDeviceCapability,
 
+    #[error("duplicate device id `{device_id}` in registration registry")]
+    DuplicateDeviceId { device_id: String },
+
     #[error("origin device id must not be empty")]
     EmptyDeviceId,
 
