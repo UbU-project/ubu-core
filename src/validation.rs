@@ -19,12 +19,14 @@ pub fn validate_timestamp(value: &str) -> crate::Result<UbuTimestamp> {
 }
 
 pub fn validate_task_lifecycle(task: &Task) -> crate::Result<()> {
-    match (task.status, task.moot_reason_code) {
+    let lifecycle = match (task.status, task.moot_reason_code) {
         (TaskStatus::Moot, None) => Err(UbuError::MissingMootReasonCode),
         (TaskStatus::Moot, Some(_)) => Ok(()),
         (status, Some(_)) => Err(UbuError::UnexpectedMootReasonCode {
             status: status.as_str(),
         }),
         (_, None) => Ok(()),
-    }
+    };
+    lifecycle?;
+    task.validate_fields()
 }
