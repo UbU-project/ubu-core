@@ -1,6 +1,7 @@
 pub mod authority;
 pub mod compartment_label;
 pub mod core;
+pub mod device;
 pub mod errors;
 pub mod github;
 pub mod id_registry;
@@ -19,6 +20,7 @@ pub mod worker;
 
 pub use authority::AuthoritySource;
 pub use compartment_label::CompartmentLabel;
+pub use device::{DeviceKind, DeviceRegistration, SyncState, TrustState, ZoneId};
 pub use errors::{Result, UbuError};
 pub use id_registry::{ObjectType, PrefixEntry};
 pub use ids::UbuId;
