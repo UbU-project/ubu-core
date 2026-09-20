@@ -1,5 +1,6 @@
 pub mod authority;
 pub mod gpu_advisory;
+pub mod local_advisory;
 pub mod submission;
 
 pub use authority::WorkerAuthority;
