@@ -21,7 +21,7 @@ pub mod worker;
 
 pub use advisory_candidate::{
     transition, AdvisoryCandidate, AdvisoryCandidateId, CandidateLinks, CandidatePayload, CandidateKind, CandidateLifecycleState, DisclosurePolicy,
-    ProposingActor, ResurfaceTrigger, RetentionPolicy, ReviewLabel,
+    ProposingActor, ResurfaceTrigger, RetentionPolicy, ReviewLabel, SuppressionDecision, SuppressionRecord,
 };
 pub use authority::AuthoritySource;
 pub use compartment_label::CompartmentLabel;
