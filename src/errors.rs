@@ -7,6 +7,12 @@ pub enum UbuError {
     #[error("zone id must not be empty")]
     EmptyZoneId,
 
+    #[error("device label must not be empty")]
+    EmptyDeviceLabel,
+
+    #[error("device capability must not be empty")]
+    EmptyDeviceCapability,
+
     #[error("origin device id must not be empty")]
     EmptyDeviceId,
 

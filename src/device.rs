@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 
 use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize};
+use uuid::Uuid;
 
 pub use crate::store::mutation_envelope::DeviceId;
 use crate::{CompartmentLabel, ObjectType, UbuError, UbuId, UbuTimestamp};
@@ -106,4 +107,47 @@ where
         }
     }
     Ok(set)
+}
+
+impl DeviceRegistration {
+    /// Validate registration inputs. Non-empty strings are not trimmed;
+    /// all three timestamps remain independent of registration validation.
+    pub fn validate(&self) -> crate::Result<()> {
+        self.registered_identity_id
+            .require_object_type(ObjectType::Identity)?;
+        if self.label.is_empty() {
+            return Err(UbuError::EmptyDeviceLabel);
+        }
+        ZoneId::parse(self.zone_id.as_str())?;
+        if self.capability_profile.iter().any(String::is_empty) {
+            return Err(UbuError::EmptyDeviceCapability);
+        }
+        Ok(())
+    }
+
+    /// Test only explicit allowlist membership; registry cardinality grants nothing.
+    pub fn may_access(&self, label: &CompartmentLabel) -> bool {
+        self.compartment_access.contains(label)
+    }
+
+    /// The admission path must perform this check before accepting an origin.
+    /// Phase 1b's single registration is not exempt. This does not grant access
+    /// to a Compartment; its allowlist must be checked independently.
+    pub fn may_originate_mutations(&self) -> bool {
+        matches!(self.trust_state, TrustState::Registered)
+    }
+}
+
+impl DeviceId {
+    /// Assign a fresh identifier at registration: `dev_` plus a UUIDv7.
+    /// Never derive Device identity from hardware, installation identity,
+    /// database contents, or integration credentials. Continuity requires
+    /// preserving/restoring registration material; losing it means a new Device.
+    ///
+    /// Minted ids use this shape, while the existing `parse` deliberately accepts
+    /// any non-empty operator-supplied registration identifier.
+    pub fn generate() -> Self {
+        Self::parse(format!("dev_{}", Uuid::now_v7().simple()))
+            .expect("generated Device identifier is non-empty")
+    }
 }
