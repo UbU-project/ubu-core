@@ -28,7 +28,7 @@ pub use snapshot::{
     SnapshotAffect,
 };
 pub use task::{
-    MootReasonCode, Task, TaskAssignee, TaskCorrelationGroup, TaskDurationEstimate, TaskEffect,
+    MootReasonCode, StaticWindow, Task, TaskAssignee, TaskCorrelationGroup, TaskDurationEstimate, TaskEffect,
     TaskStatus,
 };
 pub use universe_state::{

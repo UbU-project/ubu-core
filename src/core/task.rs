@@ -43,6 +43,9 @@ pub enum MootReasonCode {
     Duplicate,
 }
 
+/// Construct downstream Tasks with `Task::new`, then assign optional fields.
+/// The non-exhaustive shape permits adding fields without downstream literals.
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Task {
     pub id: UbuId,
@@ -71,6 +74,29 @@ pub struct Task {
     pub provenance: Provenance,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_tag: Option<String>,
+    #[serde(default = "default_occupies_capacity", skip_serializing_if = "is_true")]
+    pub occupies_capacity: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub static_window: Option<StaticWindow>,
+}
+
+fn default_occupies_capacity() -> bool {
+    true
+}
+
+fn is_true(value: &bool) -> bool {
+    *value
+}
+
+/// A Static Task's authoritative placement and duration; independent of its
+/// optional duration estimate. Without a window the Task is Dynamic.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StaticWindow {
+    pub start: UbuTimestamp,
+    pub end: UbuTimestamp,
 }
 
 /// Inline assignee shape from the canonical Identity schema. The identity id is
@@ -185,6 +211,12 @@ struct TaskWire {
     pub provenance: Provenance,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category_tag: Option<String>,
+    #[serde(default = "default_occupies_capacity", skip_serializing_if = "is_true")]
+    pub occupies_capacity: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub static_window: Option<StaticWindow>,
 }
 
 impl<'de> Deserialize<'de> for Task {
@@ -206,6 +238,9 @@ impl<'de> Deserialize<'de> for Task {
             effects: wire.effects,
             provenance: wire.provenance,
             tags: wire.tags,
+            category_tag: wire.category_tag,
+            occupies_capacity: wire.occupies_capacity,
+            static_window: wire.static_window,
         };
         // Preserve the existing API boundary: lifecycle-invalid Tasks still
         // deserialize so callers can report the dedicated lifecycle error.
@@ -215,6 +250,32 @@ impl<'de> Deserialize<'de> for Task {
 }
 
 impl Task {
+    /// The downstream construction entry point. Optional fields default to None
+    /// or empty collections; Tasks occupy capacity by default. This does not
+    /// validate: callers assign their optional fields, then call `validate`.
+    pub fn new(id: UbuId, title: String, status: TaskStatus, provenance: Provenance) -> Self {
+        Self {
+            id,
+            title,
+            description: None,
+            status,
+            moot_reason_code: None,
+            objective_id: None,
+            assignee: None,
+            blocked_by: Vec::new(),
+            due_at: None,
+            duration_estimate: None,
+            correlation_groups: Vec::new(),
+            preconditions: None,
+            effects: None,
+            provenance,
+            tags: Vec::new(),
+            category_tag: None,
+            occupies_capacity: true,
+            static_window: None,
+        }
+    }
+
     pub fn validate_fields(&self) -> crate::Result<()> {
         if let Some(assignee) = &self.assignee {
             assignee
@@ -335,6 +396,9 @@ mod tests {
                 source_refs: None,
             },
             tags: Vec::new(),
+            category_tag: None,
+            occupies_capacity: true,
+            static_window: None,
         };
 
         let value = serde_json::to_value(&task).expect("serializes");
