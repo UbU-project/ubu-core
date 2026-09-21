@@ -94,6 +94,9 @@ fn round_trips_canonical_or_placeholder_fixtures() {
     round_trip_fixture::<Task>("valid/core/task/with-effects.json");
     round_trip_fixture::<Task>("valid/core/task/with-drift-fields.json");
     round_trip_fixture::<Task>("valid/core/task/tagged.json");
+    round_trip_fixture::<Task>("valid/core/task/static-task.json");
+    round_trip_fixture::<Task>("valid/core/task/non-capacity.json");
+    round_trip_fixture::<Task>("valid/core/task/with-category-tag.json");
     round_trip_fixture::<Objective>("valid/core/objective/basic.json");
     round_trip_fixture::<ExternalReference>("valid/core/external-reference/basic.json");
     round_trip_fixture::<LogEntry>("valid/core/log-entry/basic.json");
@@ -138,7 +141,7 @@ fn rejects_task_effects_unknown_field_fixture() {
 
 #[test]
 fn rejects_new_invalid_task_fixtures() {
-    for case in ["duplicate-tags", "invalid-duration-order"] {
+    for case in ["duplicate-tags", "invalid-duration-order", "static-window-missing-end"] {
         assert_fixture_rejected::<Task>(&format!("invalid/core/task/{case}.json"));
     }
 }
