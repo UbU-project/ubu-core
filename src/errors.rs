@@ -2,6 +2,24 @@ use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, UbuError>;
 
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, Error, PartialEq, Eq)]
+pub enum DurationEstimateViolation {
+    #[error("duration_estimate.fixed.seconds must be greater than zero")]
+    ZeroSeconds,
+    #[error("duration_estimate must satisfy min_seconds < mode_seconds < p95_seconds")]
+    NotStrictlyIncreasing,
+}
+
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, Error, PartialEq, Eq)]
+pub enum CorrelationGroupViolation {
+    #[error("correlation group strength must be between zero and one")]
+    StrengthOutOfRange,
+    #[error("correlation group names must be unique")]
+    DuplicateName,
+}
+
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
     #[error("invalid local advisory field `{field}`")]
@@ -102,14 +120,16 @@ pub enum UbuError {
     InvalidTaskBlockedBy,
     #[error("Task cannot be blocked by itself")]
     TaskSelfBlocked,
-    #[error("invalid Task duration_estimate")]
-    InvalidTaskDurationEstimate,
+    #[error("core/task schema: {violation}")]
+    InvalidTaskDurationEstimate {
+        violation: DurationEstimateViolation,
+    },
     #[error("Task tags must not contain empty strings")]
     EmptyTaskTag,
     #[error("Task tags must be unique")]
     DuplicateTaskTag,
-    #[error("Task correlation_groups must have unique group names")]
-    DuplicateTaskCorrelationGroup,
-    #[error("invalid Task correlation group strength")]
-    InvalidTaskCorrelationStrength,
+    #[error("core/task schema: {violation}")]
+    InvalidTaskCorrelationGroup {
+        violation: CorrelationGroupViolation,
+    },
 }

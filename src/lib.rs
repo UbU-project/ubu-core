@@ -27,7 +27,7 @@ pub use advisory_candidate::{
 pub use authority::AuthoritySource;
 pub use compartment_label::CompartmentLabel;
 pub use device::{DeviceKind, DeviceRegistration, DeviceRegistry, SyncState, TrustState, ZoneId};
-pub use errors::{Result, UbuError};
+pub use errors::{CorrelationGroupViolation, DurationEstimateViolation, Result, UbuError};
 pub use id_registry::{ObjectType, PrefixEntry};
 pub use ids::UbuId;
 pub use object_ref::ObjectRef;

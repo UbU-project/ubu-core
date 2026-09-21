@@ -7,7 +7,7 @@ use crate::core::universe_state::{UniverseMutation, UniversePrecondition};
 use crate::ids::UbuId;
 use crate::provenance::Provenance;
 use crate::time::UbuTimestamp;
-use crate::{ObjectType, UbuError};
+use crate::{CorrelationGroupViolation, DurationEstimateViolation, ObjectType, UbuError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -101,13 +101,19 @@ pub enum TaskDurationEstimate {
 impl TaskDurationEstimate {
     pub fn validate(&self) -> crate::Result<()> {
         match self {
-            Self::Fixed { seconds } if *seconds == 0 => Err(UbuError::InvalidTaskDurationEstimate),
+            Self::Fixed { seconds } if *seconds == 0 => {
+                Err(UbuError::InvalidTaskDurationEstimate {
+                    violation: DurationEstimateViolation::ZeroSeconds,
+                })
+            }
             Self::ShiftedLognormalP95 {
                 min_seconds,
                 mode_seconds,
                 p95_seconds,
             } if !(min_seconds < mode_seconds && mode_seconds < p95_seconds) => {
-                Err(UbuError::InvalidTaskDurationEstimate)
+                Err(UbuError::InvalidTaskDurationEstimate {
+                    violation: DurationEstimateViolation::NotStrictlyIncreasing,
+                })
             }
             _ => Ok(()),
         }
@@ -128,6 +134,26 @@ impl TaskDurationEstimate {
 pub struct TaskCorrelationGroup {
     pub group: String,
     pub strength: f64,
+}
+
+impl TaskCorrelationGroup {
+    /// Shared by Task validation and store admission of Task payload fields.
+    pub fn validate_groups(groups: &[Self]) -> crate::Result<()> {
+        let mut names = BTreeSet::new();
+        for group in groups {
+            if !(0.0..=1.0).contains(&group.strength) {
+                return Err(UbuError::InvalidTaskCorrelationGroup {
+                    violation: CorrelationGroupViolation::StrengthOutOfRange,
+                });
+            }
+            if !names.insert(&group.group) {
+                return Err(UbuError::InvalidTaskCorrelationGroup {
+                    violation: CorrelationGroupViolation::DuplicateName,
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Deserialize)]
@@ -219,15 +245,7 @@ impl Task {
                 return Err(UbuError::DuplicateTaskTag);
             }
         }
-        let mut groups = BTreeSet::new();
-        for group in &self.correlation_groups {
-            if !(0.0..=1.0).contains(&group.strength) || !group.strength.is_finite() {
-                return Err(UbuError::InvalidTaskCorrelationStrength);
-            }
-            if !groups.insert(&group.group) {
-                return Err(UbuError::DuplicateTaskCorrelationGroup);
-            }
-        }
+        TaskCorrelationGroup::validate_groups(&self.correlation_groups)?;
         Ok(())
     }
 }
@@ -357,7 +375,9 @@ mod tests {
         task.duration_estimate = Some(TaskDurationEstimate::Fixed { seconds: 0 });
         assert_eq!(
             task.validate_fields(),
-            Err(UbuError::InvalidTaskDurationEstimate)
+            Err(UbuError::InvalidTaskDurationEstimate {
+                violation: DurationEstimateViolation::ZeroSeconds,
+            })
         );
         task.duration_estimate = Some(TaskDurationEstimate::ShiftedLognormalP95 {
             min_seconds: 10,
@@ -366,7 +386,9 @@ mod tests {
         });
         assert_eq!(
             task.validate_fields(),
-            Err(UbuError::InvalidTaskDurationEstimate)
+            Err(UbuError::InvalidTaskDurationEstimate {
+                violation: DurationEstimateViolation::NotStrictlyIncreasing,
+            })
         );
         task.duration_estimate = None;
         task.correlation_groups = vec![
@@ -381,8 +403,75 @@ mod tests {
         ];
         assert_eq!(
             task.validate_fields(),
-            Err(UbuError::DuplicateTaskCorrelationGroup)
+            Err(UbuError::InvalidTaskCorrelationGroup {
+                violation: CorrelationGroupViolation::DuplicateName,
+            })
         );
+    }
+
+    #[test]
+    fn estimate_and_correlation_violations_preserve_acceptance_and_detail() {
+        for (min_seconds, mode_seconds, p95_seconds) in
+            [(10, 10, 20), (11, 10, 20), (0, 10, 10), (0, 11, 10)]
+        {
+            let error = TaskDurationEstimate::ShiftedLognormalP95 {
+                min_seconds,
+                mode_seconds,
+                p95_seconds,
+            }
+            .validate()
+            .unwrap_err();
+            assert_eq!(
+                error,
+                UbuError::InvalidTaskDurationEstimate {
+                    violation: DurationEstimateViolation::NotStrictlyIncreasing,
+                }
+            );
+            assert!(error
+                .to_string()
+                .contains("min_seconds < mode_seconds < p95_seconds"));
+        }
+        let error = TaskDurationEstimate::Fixed { seconds: 0 }
+            .validate()
+            .unwrap_err();
+        assert!(error
+            .to_string()
+            .contains("seconds must be greater than zero"));
+        for strength in [-0.1, 1.1, f64::NAN, f64::NEG_INFINITY, f64::INFINITY] {
+            let mut task = base_task();
+            task.correlation_groups = vec![TaskCorrelationGroup {
+                group: "g".into(),
+                strength,
+            }];
+            let error = task.validate_fields().unwrap_err();
+            assert_eq!(
+                error,
+                UbuError::InvalidTaskCorrelationGroup {
+                    violation: CorrelationGroupViolation::StrengthOutOfRange,
+                }
+            );
+            assert!(error
+                .to_string()
+                .contains("strength must be between zero and one"));
+        }
+        for strength in [0.0, 0.5, 1.0] {
+            TaskCorrelationGroup::validate_groups(&[TaskCorrelationGroup {
+                group: String::new(),
+                strength,
+            }])
+            .unwrap();
+        }
+        TaskCorrelationGroup::validate_groups(&[]).unwrap();
+        TaskDurationEstimate::Fixed { seconds: 1 }
+            .validate()
+            .unwrap();
+        TaskDurationEstimate::ShiftedLognormalP95 {
+            min_seconds: 0,
+            mode_seconds: 1,
+            p95_seconds: 2,
+        }
+        .validate()
+        .unwrap();
     }
 
     #[test]
