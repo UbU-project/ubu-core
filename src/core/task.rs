@@ -99,6 +99,24 @@ pub struct StaticWindow {
     pub end: UbuTimestamp,
 }
 
+impl StaticWindow {
+    /// Shared ordering rule for Task validation and piecemeal store admission.
+    pub fn validate(&self) -> crate::Result<()> {
+        if self.end <= self.start {
+            return Err(UbuError::InvalidTaskStaticWindow);
+        }
+        Ok(())
+    }
+}
+
+/// Validate the exact selection from tags without requiring a whole Task.
+pub fn validate_category_tag(category_tag: &str, tags: &[String]) -> crate::Result<()> {
+    if category_tag.is_empty() || !tags.iter().any(|tag| tag == category_tag) {
+        return Err(UbuError::InvalidTaskCategoryTag);
+    }
+    Ok(())
+}
+
 /// Inline assignee shape from the canonical Identity schema. The identity id is
 /// retained here so Task payloads do not need a separate lookup to identify it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -276,6 +294,11 @@ impl Task {
         }
     }
 
+    /// Validate lifecycle and every Task field after construction or mutation.
+    pub fn validate(&self) -> crate::Result<()> {
+        crate::validation::validate_task_lifecycle(self)
+    }
+
     pub fn validate_fields(&self) -> crate::Result<()> {
         if let Some(assignee) = &self.assignee {
             assignee
@@ -307,6 +330,12 @@ impl Task {
             }
         }
         TaskCorrelationGroup::validate_groups(&self.correlation_groups)?;
+        if let Some(category_tag) = &self.category_tag {
+            validate_category_tag(category_tag, &self.tags)?;
+        }
+        if let Some(window) = &self.static_window {
+            window.validate()?;
+        }
         Ok(())
     }
 }

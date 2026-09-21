@@ -128,6 +128,10 @@ pub enum UbuError {
     EmptyTaskTag,
     #[error("Task tags must be unique")]
     DuplicateTaskTag,
+    #[error("Task static_window.end must be strictly after start")]
+    InvalidTaskStaticWindow,
+    #[error("Task category_tag must be non-empty and an exact member of tags")]
+    InvalidTaskCategoryTag,
     #[error("core/task schema: {violation}")]
     InvalidTaskCorrelationGroup {
         violation: CorrelationGroupViolation,
