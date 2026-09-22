@@ -22,6 +22,61 @@ pub enum CorrelationGroupViolation {
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
+    #[error("recurrence timezone must be UTC or Area/Location")]
+    InvalidRecurrenceTimezone,
+    #[error("recurrence date must be a valid YYYY-MM-DD date")]
+    InvalidRecurrenceDate,
+    #[error("schedule_version must be positive")]
+    ZeroScheduleVersion,
+    #[error("weekly recurrence requires nonempty weekdays")]
+    EmptyRecurrenceWeekdays,
+    #[error("recurrence weekdays must be unique")]
+    DuplicateRecurrenceWeekday,
+    #[error("monthly_day recurrence requires nonempty days")]
+    EmptyRecurrenceDays,
+    #[error("recurrence days must be 1 through 31")]
+    InvalidRecurrenceDay,
+    #[error("recurrence days must be unique")]
+    DuplicateRecurrenceDay,
+    #[error("enabled_from must not be after enabled_until")]
+    InvalidRecurrenceEnablementWindow,
+    #[error("exdates must be unique")]
+    DuplicateRecurrenceExdate,
+    #[error("routine template title must not be empty")]
+    EmptyRoutineTitle,
+    #[error("local time must be valid HH:MM:SS")]
+    InvalidRoutineLocalTime,
+    #[error("nominal_start must be valid HH:MM:SS")]
+    InvalidRoutineNominalStart,
+    #[error("template_version must be positive")]
+    ZeroTemplateVersion,
+    #[error("reminder_minutes must be nonnegative")]
+    NegativeRoutineReminder,
+    #[error("after objective_id must be an Objective id")]
+    InvalidRoutineAfterObjective,
+    #[error("after offset_seconds must be nonnegative")]
+    NegativeRoutineAfterOffset,
+    #[error("planned routine requires allowed_local_range")]
+    PlannedRoutineMissingRange,
+    #[error("static routine forbids allowed_local_range")]
+    StaticRoutineWithRange,
+    #[error("allowed_local_range earliest must precede latest on the same day")]
+    InvalidRoutineLocalRange,
+    #[error("routine_objective_id must be an Objective id")]
+    InvalidOccurrenceObjective,
+    #[error("occurrence local_date must be valid YYYY-MM-DD")]
+    InvalidOccurrenceDate,
+    #[error("occurrence key must not be empty")]
+    EmptyOccurrenceKey,
+    #[error("recurrence requires evergreen mode")]
+    RecurrenceRequiresEvergreen,
+    #[error("routine_instance_template requires recurrence")]
+    RoutineTemplateRequiresRecurrence,
+    #[error("routine Objective must not carry priority")]
+    RoutineObjectiveWithPriority,
+    #[error("routine after must not name its own Objective")]
+    RoutineAfterSelfReference,
+
     #[error("Preference subjects must be exactly one complete pair of Task IDs or Objective IDs")]
     InvalidPreferenceSubjects,
     #[error("Preference cannot relate a subject to itself")]

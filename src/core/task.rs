@@ -340,6 +340,9 @@ impl Task {
     }
 
     pub fn validate_fields(&self) -> crate::Result<()> {
+        if let Some(occurrence) = &self.occurrence {
+            occurrence.validate()?;
+        }
         if let Some(assignee) = &self.assignee {
             assignee
                 .id
