@@ -22,6 +22,10 @@ pub enum CorrelationGroupViolation {
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
+    #[error("Preference subjects must be exactly one complete pair of Task IDs or Objective IDs")]
+    InvalidPreferenceSubjects,
+    #[error("Preference cannot relate a subject to itself")]
+    PreferenceSelfRelation,
     #[error("invalid local advisory field `{field}`")]
     InvalidLocalAdvisory { field: &'static str },
     #[error("advisory capability is not granted for candidate kind `{kind}`")]

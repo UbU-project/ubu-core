@@ -497,10 +497,8 @@ mod tests {
     #[test]
     fn issuer_stamps_device_clock_and_unique_keys() {
         let now = UbuTimestamp::parse("2026-06-10T09:00:00Z").unwrap();
-        let issuer = LocalIssuer::with_clock(
-            DeviceId::parse("registered-device").unwrap(),
-            move || now,
-        );
+        let issuer =
+            LocalIssuer::with_clock(DeviceId::parse("registered-device").unwrap(), move || now);
         let issuer: &dyn CausalityIssuer = &issuer;
         let mut keys = std::collections::HashSet::new();
         for _ in 0..1024 {

@@ -6,6 +6,7 @@ pub mod external_reference;
 pub mod identity;
 pub mod log_entry;
 pub mod objective;
+pub mod preference;
 pub mod relationship;
 pub mod setting;
 pub mod snapshot;
@@ -21,6 +22,7 @@ pub use external_reference::ExternalReference;
 pub use identity::{Identity, IdentityKind};
 pub use log_entry::{CompartmentBoundaryDecidedPayload, LogEntry, LogEventType, PolicyMember};
 pub use objective::{Objective, ObjectiveStatus};
+pub use preference::{Preference, PreferenceAcquiredMethod, PreferenceOrder, PreferenceSubjects};
 pub use relationship::Relationship;
 pub use setting::Setting;
 pub use snapshot::{
