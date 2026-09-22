@@ -18,6 +18,7 @@ pub enum ObjectType {
     Identity,
     Relationship,
     ExternalEvent,
+    Setting,
 }
 
 impl ObjectType {
@@ -39,6 +40,7 @@ impl ObjectType {
             Self::Identity => "Identity",
             Self::Relationship => "Relationship",
             Self::ExternalEvent => "ExternalEvent",
+            Self::Setting => "Setting",
         }
     }
 }
@@ -113,6 +115,10 @@ pub const PREFIX_REGISTRY: &[PrefixEntry] = &[
     PrefixEntry {
         prefix: "xevent_",
         object_type: ObjectType::ExternalEvent,
+    },
+    PrefixEntry {
+        prefix: "setting_",
+        object_type: ObjectType::Setting,
     },
 ];
 
