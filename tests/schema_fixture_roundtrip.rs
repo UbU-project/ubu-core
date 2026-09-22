@@ -296,3 +296,21 @@ fn invalid_ranges_and_preferences_are_rejected() {
         assert_fixture_rejected::<Task>(&format!("invalid/core/task/{case}.json"));
     }
 }
+
+#[test]
+fn routine_fixtures_round_trip_and_invalid_objectives_are_rejected() {
+    for case in ["routine-static", "routine-planned"] {
+        round_trip_fixture::<Objective>(&format!("valid/core/objective/{case}.json"));
+    }
+    round_trip_fixture::<Task>("valid/core/task/routine-occurrence.json");
+    for case in [
+        "recurrence-on-one-time",
+        "template-without-recurrence",
+        "weekly-without-weekdays",
+        "unknown-rule-kind",
+        "routine-with-priority",
+        "planned-without-range",
+    ] {
+        assert_fixture_rejected::<Objective>(&format!("invalid/core/objective/{case}.json"));
+    }
+}

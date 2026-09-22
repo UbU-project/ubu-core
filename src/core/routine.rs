@@ -135,7 +135,7 @@ pub fn validate_timezone(value: &str) -> crate::Result<()> {
 }
 
 pub fn validate_local_date(value: &str) -> crate::Result<()> {
-    let format = time::format_description::parse("[year]-[month]-[day]").unwrap();
+    let format = time::format_description::parse_borrowed::<2>("[year]-[month]-[day]").unwrap();
     if value.len() != 10 || time::Date::parse(value, &format).is_err() {
         return Err(crate::UbuError::InvalidRecurrenceDate);
     }
@@ -143,7 +143,7 @@ pub fn validate_local_date(value: &str) -> crate::Result<()> {
 }
 
 pub fn validate_local_time(value: &str) -> crate::Result<()> {
-    let format = time::format_description::parse("[hour]:[minute]:[second]").unwrap();
+    let format = time::format_description::parse_borrowed::<2>("[hour]:[minute]:[second]").unwrap();
     if value.len() != 8 || time::Time::parse(value, &format).is_err() {
         return Err(crate::UbuError::InvalidRoutineLocalTime);
     }

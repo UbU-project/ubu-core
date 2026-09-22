@@ -479,6 +479,7 @@ mod tests {
             occupies_capacity: true,
             static_window: None,
             allowed_time_range: None,
+            occurrence: None,
         };
 
         let value = serde_json::to_value(&task).expect("serializes");
