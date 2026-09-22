@@ -82,6 +82,8 @@ pub struct Task {
     pub static_window: Option<StaticWindow>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allowed_time_range: Option<AllowedTimeRange>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub occurrence: Option<super::TaskOccurrence>,
 }
 
 fn default_occupies_capacity() -> bool {
@@ -159,7 +161,7 @@ pub struct TaskAssignee {
     pub kind: crate::core::identity::IdentityKind,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TaskDurationEstimate {
     Fixed {
@@ -267,6 +269,8 @@ struct TaskWire {
     pub static_window: Option<StaticWindow>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub allowed_time_range: Option<AllowedTimeRange>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub occurrence: Option<super::TaskOccurrence>,
 }
 
 impl<'de> Deserialize<'de> for Task {
@@ -292,6 +296,7 @@ impl<'de> Deserialize<'de> for Task {
             occupies_capacity: wire.occupies_capacity,
             static_window: wire.static_window,
             allowed_time_range: wire.allowed_time_range,
+            occurrence: wire.occurrence,
         };
         // Preserve the existing API boundary: lifecycle-invalid Tasks still
         // deserialize so callers can report the dedicated lifecycle error.
@@ -325,6 +330,7 @@ impl Task {
             occupies_capacity: true,
             static_window: None,
             allowed_time_range: None,
+            occurrence: None,
         }
     }
 
