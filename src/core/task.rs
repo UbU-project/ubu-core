@@ -80,6 +80,8 @@ pub struct Task {
     pub occupies_capacity: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub static_window: Option<StaticWindow>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_time_range: Option<AllowedTimeRange>,
 }
 
 fn default_occupies_capacity() -> bool {
@@ -107,6 +109,34 @@ impl StaticWindow {
         }
         Ok(())
     }
+}
+
+/// Hard absolute occupancy range for a Dynamic Task.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AllowedTimeRange {
+    pub earliest_start: UbuTimestamp,
+    pub latest_finish: UbuTimestamp,
+}
+
+impl AllowedTimeRange {
+    pub fn validate(&self) -> crate::Result<()> {
+        if self.earliest_start >= self.latest_finish {
+            return Err(UbuError::InvalidTaskAllowedTimeRange);
+        }
+        Ok(())
+    }
+}
+
+/// Shared by Task validation and piecemeal store admission.
+pub fn validate_scheduling_forms(
+    has_static_window: bool,
+    has_allowed_time_range: bool,
+) -> crate::Result<()> {
+    if has_static_window && has_allowed_time_range {
+        return Err(UbuError::TaskStaticWithAllowedTimeRange);
+    }
+    Ok(())
 }
 
 /// Validate the exact selection from tags without requiring a whole Task.
@@ -235,6 +265,8 @@ struct TaskWire {
     pub occupies_capacity: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub static_window: Option<StaticWindow>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed_time_range: Option<AllowedTimeRange>,
 }
 
 impl<'de> Deserialize<'de> for Task {
@@ -259,6 +291,7 @@ impl<'de> Deserialize<'de> for Task {
             category_tag: wire.category_tag,
             occupies_capacity: wire.occupies_capacity,
             static_window: wire.static_window,
+            allowed_time_range: wire.allowed_time_range,
         };
         // Preserve the existing API boundary: lifecycle-invalid Tasks still
         // deserialize so callers can report the dedicated lifecycle error.
@@ -291,6 +324,7 @@ impl Task {
             category_tag: None,
             occupies_capacity: true,
             static_window: None,
+            allowed_time_range: None,
         }
     }
 
@@ -332,6 +366,13 @@ impl Task {
         TaskCorrelationGroup::validate_groups(&self.correlation_groups)?;
         if let Some(category_tag) = &self.category_tag {
             validate_category_tag(category_tag, &self.tags)?;
+        }
+        validate_scheduling_forms(
+            self.static_window.is_some(),
+            self.allowed_time_range.is_some(),
+        )?;
+        if let Some(range) = &self.allowed_time_range {
+            range.validate()?;
         }
         if let Some(window) = &self.static_window {
             window.validate()?;
@@ -428,6 +469,7 @@ mod tests {
             category_tag: None,
             occupies_capacity: true,
             static_window: None,
+            allowed_time_range: None,
         };
 
         let value = serde_json::to_value(&task).expect("serializes");

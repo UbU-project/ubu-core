@@ -30,8 +30,9 @@ pub use snapshot::{
     SnapshotAffect,
 };
 pub use task::{
-    validate_category_tag, MootReasonCode, StaticWindow, Task, TaskAssignee, TaskCorrelationGroup,
-    TaskDurationEstimate, TaskEffect, TaskStatus,
+    validate_category_tag, validate_scheduling_forms, AllowedTimeRange, MootReasonCode,
+    StaticWindow, Task, TaskAssignee, TaskCorrelationGroup, TaskDurationEstimate, TaskEffect,
+    TaskStatus,
 };
 pub use universe_state::{
     apply_universe_mutations, evaluate_universe_precondition, is_intrinsic_affect_target,

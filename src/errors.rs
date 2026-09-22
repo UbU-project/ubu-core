@@ -134,6 +134,10 @@ pub enum UbuError {
     DuplicateTaskTag,
     #[error("Task static_window.end must be strictly after start")]
     InvalidTaskStaticWindow,
+    #[error("Task allowed_time_range.earliest_start must be strictly before latest_finish")]
+    InvalidTaskAllowedTimeRange,
+    #[error("Task cannot have both static_window and allowed_time_range")]
+    TaskStaticWithAllowedTimeRange,
     #[error("Task category_tag must be non-empty and an exact member of tags")]
     InvalidTaskCategoryTag,
     #[error("core/task schema: {violation}")]
