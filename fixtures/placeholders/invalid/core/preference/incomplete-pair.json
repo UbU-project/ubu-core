@@ -1,0 +1,12 @@
+{
+  "id": "pref_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "task_a": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f",
+  "order": "a_preferred_to_b",
+  "acquired_method": "user_defined",
+  "acquired_date": "2026-09-21T12:00:00Z",
+  "enabled": true,
+  "provenance": {
+    "created_at": "2026-09-21T12:00:00Z",
+    "authority_source": "user"
+  }
+}

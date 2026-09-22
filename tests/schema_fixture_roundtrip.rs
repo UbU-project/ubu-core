@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
-use ubu_core::core::{ExternalReference, LogEntry, Objective, Snapshot, Task};
+use ubu_core::core::{ExternalReference, LogEntry, Objective, Preference, Setting, Snapshot, Task};
 use ubu_core::planning::{
     PlanningRequest, PlanningResponse, RepairRequest, RepairResponse,
     PLANNING_KERNEL_CONTRACT_VERSION,
@@ -141,7 +141,11 @@ fn rejects_task_effects_unknown_field_fixture() {
 
 #[test]
 fn rejects_new_invalid_task_fixtures() {
-    for case in ["duplicate-tags", "invalid-duration-order", "static-window-missing-end"] {
+    for case in [
+        "duplicate-tags",
+        "invalid-duration-order",
+        "static-window-missing-end",
+    ] {
         assert_fixture_rejected::<Task>(&format!("invalid/core/task/{case}.json"));
     }
 }
@@ -269,5 +273,26 @@ fn rejects_invalid_advisory_candidate_fixtures() {
         assert_fixture_rejected::<AdvisoryCandidate>(&format!(
             "invalid/core/advisory-candidate/{case}.json"
         ));
+    }
+}
+
+#[test]
+fn ranges_settings_and_preferences_round_trip() {
+    round_trip_fixture::<Setting>("valid/core/setting/basic.json");
+    round_trip_fixture::<Preference>("valid/core/preference/task-pair.json");
+    round_trip_fixture::<Preference>("valid/core/preference/objective-pair.json");
+    round_trip_fixture::<Task>("valid/core/task/with-allowed-time-range.json");
+}
+
+#[test]
+fn invalid_ranges_and_preferences_are_rejected() {
+    for case in ["mixed-pair", "incomplete-pair", "unknown-order"] {
+        assert_fixture_rejected::<Preference>(&format!("invalid/core/preference/{case}.json"));
+    }
+    for case in [
+        "static-with-allowed-time-range",
+        "allowed-time-range-missing-latest-finish",
+    ] {
+        assert_fixture_rejected::<Task>(&format!("invalid/core/task/{case}.json"));
     }
 }

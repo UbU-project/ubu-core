@@ -108,7 +108,7 @@ fn rejects_wrong_uuid_v7_version_and_variant_bits() {
     assert!(UbuId::parse("task_018f3c8e9b2a7c4d7f1e2a3b4c5d6e7f").is_err());
 }
 
-fn new_object_type_cases() -> [(&'static str, &'static str, ObjectType); 6] {
+fn new_object_type_cases() -> [(&'static str, &'static str, ObjectType); 7] {
     [
         (
             "valid/common/id/preference-id.json",
@@ -139,6 +139,11 @@ fn new_object_type_cases() -> [(&'static str, &'static str, ObjectType); 6] {
             "valid/common/id/external-event-id.json",
             "xevent_",
             ObjectType::ExternalEvent,
+        ),
+        (
+            "valid/common/id/setting-id.json",
+            "setting_",
+            ObjectType::Setting,
         ),
     ]
 }

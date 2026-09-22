@@ -43,6 +43,7 @@ fn constructor_defaults_every_optional_field_without_validating() {
     assert!(task.category_tag.is_none());
     assert!(task.occupies_capacity);
     assert!(task.static_window.is_none());
+    assert!(task.allowed_time_range.is_none());
     task.validate().unwrap();
     let invalid = Task::new(source.id, source.title, TaskStatus::Moot, source.provenance);
     assert_eq!(invalid.validate(), Err(UbuError::MissingMootReasonCode));
