@@ -76,7 +76,12 @@ pub struct LocalTimeRange {
 #[serde(deny_unknown_fields)]
 pub struct RoutineAfter {
     pub objective_id: UbuId,
-    pub offset_seconds: i64,
+    /// Earliest this occurrence may start, measured from the predecessor's end.
+    pub minimum_seconds: i64,
+    /// Latest this occurrence may start, measured from the same point. Absent
+    /// means the predecessor only orders this occurrence and does not keep it close.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum_seconds: Option<i64>,
 }
 fn yes() -> bool {
     true
@@ -230,8 +235,14 @@ impl RoutineInstanceTemplate {
                 .objective_id
                 .require_object_type(crate::ObjectType::Objective)
                 .map_err(|_| InvalidRoutineAfterObjective)?;
-            if after.offset_seconds < 0 {
+            if after.minimum_seconds < 0 {
                 return Err(NegativeRoutineAfterOffset);
+            }
+            if after
+                .maximum_seconds
+                .is_some_and(|maximum| maximum < after.minimum_seconds)
+            {
+                return Err(InvertedRoutineAfterBounds);
             }
         }
         match (self.placement, &self.allowed_local_range) {

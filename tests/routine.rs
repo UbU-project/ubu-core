@@ -7,6 +7,27 @@ fn objective() -> Objective {
     .unwrap()
 }
 #[test]
+fn after_bounds_reject_inversion_and_preserve_unbounded_edges() {
+    let base = objective().routine_instance_template.unwrap();
+    for maximum in [-1, 3599] {
+        let mut template = base.clone();
+        template.after[0].maximum_seconds = Some(maximum);
+        assert_eq!(
+            template.validate(),
+            Err(UbuError::InvertedRoutineAfterBounds)
+        );
+    }
+    for maximum in [None, Some(3600), Some(7200)] {
+        let mut template = base.clone();
+        template.after[0].maximum_seconds = maximum;
+        template.validate().unwrap();
+        let encoded = serde_json::to_value(&template.after[0]).unwrap();
+        assert_eq!(encoded.get("maximum_seconds").is_some(), maximum.is_some());
+        assert!(encoded.get("offset_seconds").is_none());
+    }
+}
+
+#[test]
 fn every_named_schedule_rule_is_validated() {
     let schedule = objective().recurrence.unwrap();
     for (field, value, expected) in [
@@ -112,12 +133,12 @@ fn every_named_template_rule_is_validated() {
         ),
         (
             "after",
-            json!([{"objective_id":task_id,"offset_seconds":0}]),
+            json!([{"objective_id":task_id,"minimum_seconds":0}]),
             UbuError::InvalidRoutineAfterObjective,
         ),
         (
             "after",
-            json!([{"objective_id":objective().id,"offset_seconds":-1}]),
+            json!([{"objective_id":objective().id,"minimum_seconds":-1}]),
             UbuError::NegativeRoutineAfterOffset,
         ),
         (

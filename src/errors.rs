@@ -54,8 +54,10 @@ pub enum UbuError {
     NegativeRoutineReminder,
     #[error("after objective_id must be an Objective id")]
     InvalidRoutineAfterObjective,
-    #[error("after offset_seconds must be nonnegative")]
+    #[error("after minimum_seconds must be nonnegative")]
     NegativeRoutineAfterOffset,
+    #[error("after maximum_seconds must be at least minimum_seconds")]
+    InvertedRoutineAfterBounds,
     #[error("planned routine requires allowed_local_range")]
     PlannedRoutineMissingRange,
     #[error("static routine forbids allowed_local_range")]
