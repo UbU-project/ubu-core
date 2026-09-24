@@ -89,7 +89,7 @@ fn yes() -> bool {
 fn is_true(value: &bool) -> bool {
     *value
 }
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RoutineInstanceTemplate {
     pub title: String,
@@ -108,6 +108,14 @@ pub struct RoutineInstanceTemplate {
     pub occupies_capacity: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub after: Vec<RoutineAfter>,
+    /// Predicted UniverseState mutation applied when an occurrence completes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub effects: Option<crate::core::task::TaskEffect>,
+    /// Checked against the current UniverseState when a Plan is built. An
+    /// occurrence whose precondition is false is reported in `blocked_tasks`
+    /// rather than scheduled.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preconditions: Option<crate::core::universe_state::UniversePrecondition>,
     pub template_version: u64,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

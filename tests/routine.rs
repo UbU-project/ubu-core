@@ -237,6 +237,10 @@ fn defaults_are_omitted_and_objective_wire_accepts_compartment() {
     ))
     .unwrap();
     let v = serde_json::to_value(static_objective).unwrap();
+    assert!(v["routine_instance_template"].get("effects").is_none());
+    assert!(v["routine_instance_template"]
+        .get("preconditions")
+        .is_none());
     assert!(v["routine_instance_template"]
         .get("occupies_capacity")
         .is_none());

@@ -62,7 +62,7 @@
     },
     "preconditions": {
       "target": "facts.ready",
-      "predicate": "equals",
+      "predicate": "not_a_predicate",
       "expected": true
     }
   }

@@ -13,7 +13,7 @@ pub enum ObjectiveStatus {
     Abandoned,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Objective {
     pub id: UbuId,

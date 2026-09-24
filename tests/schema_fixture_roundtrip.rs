@@ -310,7 +310,28 @@ fn routine_fixtures_round_trip_and_invalid_objectives_are_rejected() {
         "unknown-rule-kind",
         "routine-with-priority",
         "planned-without-range",
+        "routine-effects",
     ] {
         assert_fixture_rejected::<Objective>(&format!("invalid/core/objective/{case}.json"));
     }
+    // Like Task's existing precondition type, predicate names are checked by
+    // the evaluator, rather than by deserializing the containing template.
+    let invalid: Objective = serde_json::from_str(
+        &fs::read_to_string(resolve_fixture(
+            "invalid/core/objective/routine-preconditions.json",
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+    let state = ubu_core::core::UniverseState::new(ubu_core::UbuTimestamp::now_utc(), "test");
+    assert!(ubu_core::core::evaluate_universe_precondition(
+        &state,
+        invalid
+            .routine_instance_template
+            .unwrap()
+            .preconditions
+            .as_ref()
+            .unwrap(),
+    )
+    .is_err());
 }

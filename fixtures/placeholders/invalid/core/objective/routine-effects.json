@@ -52,13 +52,7 @@
       }
     ],
     "effects": {
-      "mutations": [
-        {
-          "operation": "set_fact",
-          "target": "facts.routine_done",
-          "payload": true
-        }
-      ]
+      "mutations": "not an array"
     },
     "preconditions": {
       "target": "facts.ready",
