@@ -1,9 +1,8 @@
 //! Phase 1b recurrence metadata; expansion and timezone resolution belong to the planner.
 //! TODO(recurrence-interval): add interval semantics in a later contract.
 //! TODO(recurrence-rdate): add explicit RDATE entries.
-//! TODO(recurrence-overrides): add occurrence override entries.
 use super::TaskDurationEstimate;
-use crate::UbuId;
+use crate::{UbuId, UbuTimestamp};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,8 +29,28 @@ pub struct RecurrenceSchedule {
     pub enabled_until: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub exdates: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub overrides: Vec<RoutineOccurrenceOverride>,
     pub schedule_version: u64,
 }
+/// A per-local-date placement exception; the nominal schedule identity is unchanged.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RoutineOccurrenceOverride {
+    pub local_date: String,
+    pub start: UbuTimestamp,
+    pub end: UbuTimestamp,
+}
+impl RoutineOccurrenceOverride {
+    pub fn validate(&self) -> crate::Result<()> {
+        validate_local_date(&self.local_date)?;
+        if self.end <= self.start {
+            return Err(crate::UbuError::InvalidRoutineOverrideWindow);
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum RecurrenceRule {
@@ -126,6 +145,8 @@ pub struct TaskOccurrence {
     pub key: String,
 }
 
+// Overrides deliberately do not change this key or bump schedule_version:
+// a decision about one day must not supersede every occurrence of the routine.
 pub fn routine_occurrence_key(
     objective_id: &UbuId,
     schedule_version: u64,
@@ -164,6 +185,12 @@ pub fn validate_local_time(value: &str) -> crate::Result<()> {
 }
 
 impl RecurrenceSchedule {
+    pub fn override_for(&self, local_date: &str) -> Option<&RoutineOccurrenceOverride> {
+        self.overrides
+            .iter()
+            .find(|entry| entry.local_date == local_date)
+    }
+
     pub fn validate(&self) -> crate::Result<()> {
         use crate::UbuError::*;
         use std::collections::BTreeSet;
@@ -208,6 +235,13 @@ impl RecurrenceSchedule {
         }
         if self.exdates.iter().collect::<BTreeSet<_>>().len() != self.exdates.len() {
             return Err(DuplicateRecurrenceExdate);
+        }
+        let mut override_dates = BTreeSet::new();
+        for entry in &self.overrides {
+            entry.validate()?;
+            if !override_dates.insert(&entry.local_date) {
+                return Err(DuplicateRoutineOverrideDate);
+            }
         }
         Ok(())
     }
@@ -305,3 +339,7 @@ pub fn validate_objective_routine_fields(
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "routine_override_tests.rs"]
+mod override_tests;

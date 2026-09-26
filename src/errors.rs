@@ -42,6 +42,10 @@ pub enum UbuError {
     InvalidRecurrenceEnablementWindow,
     #[error("exdates must be unique")]
     DuplicateRecurrenceExdate,
+    #[error("routine overrides must have unique local_date values")]
+    DuplicateRoutineOverrideDate,
+    #[error("routine override end must be after start")]
+    InvalidRoutineOverrideWindow,
     #[error("routine template title must not be empty")]
     EmptyRoutineTitle,
     #[error("local time must be valid HH:MM:SS")]
