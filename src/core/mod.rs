@@ -16,7 +16,7 @@ pub mod work_item;
 
 pub use automation_worker::AutomationWorker;
 pub use compartment::Compartment;
-pub use container::Container;
+pub use container::{Container, ContainerCompletion, ContainerMutationReason, ContainerStatus};
 pub use external_event::ExternalEvent;
 pub use external_reference::ExternalReference;
 pub use identity::{Identity, IdentityKind};

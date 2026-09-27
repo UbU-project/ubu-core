@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::Value;
-use ubu_core::core::{ExternalReference, LogEntry, Objective, Preference, Setting, Snapshot, Task};
+use ubu_core::core::{
+    Container, ExternalReference, LogEntry, Objective, Preference, Setting, Snapshot, Task,
+};
 use ubu_core::planning::{
     PlanningRequest, PlanningResponse, RepairRequest, RepairResponse,
     PLANNING_KERNEL_CONTRACT_VERSION,
@@ -90,6 +92,7 @@ fn round_trips_canonical_or_placeholder_fixtures() {
         "planning-kernel-contract/0.1"
     );
 
+    round_trip_fixture::<Container>("valid/core/container/two-segments.json");
     round_trip_fixture::<Task>("valid/core/task/basic.json");
     round_trip_fixture::<Task>("valid/core/task/with-effects.json");
     round_trip_fixture::<Task>("valid/core/task/with-drift-fields.json");

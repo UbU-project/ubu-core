@@ -1,0 +1,47 @@
+{
+  "id": "container_018f3c8e9b2a7c4d8f1e2a3b4c5d6e01",
+  "name": "Repair the synthetic gate",
+  "status": "active",
+  "origin_task_ref": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e01",
+  "origin_task_version": 1,
+  "mutation_reason": "decomposition",
+  "mutation_log_ref": "log_018f3c8e9b2a7c4d8f1e2a3b4c5d6e01",
+  "items": [
+    {
+      "ref": {
+        "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e02",
+        "object_type": "Task"
+      },
+      "summary": "Buy hinges"
+    },
+    {
+      "ref": {
+        "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e03",
+        "object_type": "Task"
+      },
+      "summary": "Remove old hinges"
+    },
+    {
+      "ref": {
+        "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e04",
+        "object_type": "Task"
+      },
+      "summary": "Hang the gate"
+    },
+    {
+      "ref": {
+        "id": "task_018f3c8e9b2a7c4d8f1e2a3b4c5d6e05",
+        "object_type": "Task"
+      },
+      "summary": "Check the latch"
+    }
+  ],
+  "segment_split_points": [
+    1,
+    1
+  ],
+  "provenance": {
+    "created_at": "2026-09-27T09:00:00Z",
+    "authority_source": "user"
+  }
+}

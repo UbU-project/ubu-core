@@ -22,6 +22,10 @@ pub enum CorrelationGroupViolation {
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum UbuError {
+    #[error("invalid Container field `{field}`")]
+    InvalidContainer { field: &'static str },
+    #[error("Container expects {expected} child states, received {actual}")]
+    ContainerChildStateCount { expected: usize, actual: usize },
     #[error("recurrence timezone must be UTC or Area/Location")]
     InvalidRecurrenceTimezone,
     #[error("recurrence date must be a valid YYYY-MM-DD date")]
