@@ -36,10 +36,11 @@ pub use task::{
 };
 pub use universe_state::{
     apply_universe_mutations, evaluate_universe_precondition, is_intrinsic_affect_target,
-    validate_mutations_for_mode, validate_precondition_for_mode, InstanceMode, JsonScalar,
-    ModeValidationError, UniverseEventMarkers, UniverseFacts, UniverseMutation,
-    UniverseMutationError, UniverseNumericValues, UniversePrecondition, UniversePreconditionError,
-    UniversePreconditionLeaf, UniverseSetMemberships, UniverseState,
+    validate_mutations_for_mode, validate_precondition_for_mode, FactProvenance, InstanceMode,
+    JsonScalar, ModeValidationError, ProvenanceKind, UniverseEventMarkers, UniverseFactProvenance,
+    UniverseFacts, UniverseMutation, UniverseMutationError, UniverseNumericValues,
+    UniversePrecondition, UniversePreconditionError, UniversePreconditionLeaf,
+    UniverseSetMemberships, UniverseState,
 };
 pub use work_item::WorkItem;
 

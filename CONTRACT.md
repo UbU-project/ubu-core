@@ -16,3 +16,59 @@
 
 Compatibility is checked by round-tripping canonical fixtures from
 `schemas-ref/fixtures` when the submodule is available.
+
+## UniverseState
+
+`src/core/universe_state.rs` holds the `UniverseState`, the mutations that
+change it and the preconditions evaluated against it. From P1B-59 a measured
+number is a first-class fact, and these are the rules.
+
+**Nine operations.** `set_fact`, `clear_fact`, `set_numeric`, `clear_numeric`,
+`increment_numeric`, `decrement_numeric`, `add_membership`, `remove_membership`
+and `append_event_marker`. `set_numeric` replaces whatever is there and
+`clear_numeric` removes the key; clearing a key that is not there changes
+nothing and is not an error. The two clears take no payload and no provenance
+kind, because they write nothing. Increment and decrement stay: a tally is a
+real thing.
+
+**Seven predicates.** `equals`, `member_of`, `absent`, and four numeric
+comparisons: `at_least`, `at_most`, `greater_than` and `less_than`. Each
+comparison requires a `numeric_values` target and a finite number as
+`expected`, and is `Malformed` otherwise. A number that was never recorded
+satisfies none of the four: the answer is false, and asking is not an error.
+
+**Per-fact provenance is a sibling map.** `UniverseState.fact_provenance` maps
+a full target, `<collection>.<key>`, to a `FactProvenance`: a `kind` and
+`recorded_at`, and nothing else. The kinds are `asserted`, `measured`,
+`derived` and `proposed`. There is no confidence number and no free text.
+`source_summary` and `confidence_summary` still describe the state as a whole.
+
+The map is not named `provenance`. A `UniverseState` in the store carries the
+object envelope under that key, and `ubu-store` rewrites it on each write.
+
+**A mutation carries the provenance of what it writes.** `provenance_kind` is
+optional and absent means `asserted`. `apply_universe_mutations` takes the
+write time as its third argument and reads no clock, so the same inputs give
+the same state. It records the kind and that time for each target it writes.
+It does not move `captured_at`.
+
+**No entry outlives its value.** `clear_fact`, `clear_numeric`, and a
+`remove_membership` that empties a set, remove the provenance entry with the
+value. A `remove_membership` that leaves members rewrites the set and records
+its own provenance. One that removes nothing touches nothing.
+
+**A mutation has no `note`.** `UniverseMutation` and `FactProvenance` refuse
+unknown fields, as `TaskEffect` does. A stored Task whose effects carry a
+`note` on a mutation no longer deserializes.
+
+**A key does not repeat its collection.** A fact is stored under
+`operator.work_style` in `facts` and addressed `facts.operator.work_style`.
+`is_intrinsic_affect_target` reads the segment after the collection as the
+namespace, so a key that began with its collection would hide its namespace
+from the mode guard.
+
+**Known drift, not closed here.** The schema's `source_summary` and
+`confidence_summary` are objects. This crate's are a `String` and an optional
+`String`. No `UniverseState` fixture round-trips as a whole;
+`tests/schema_fixture_roundtrip.rs` pins that, and checks the fixture's
+`fact_provenance` by itself.

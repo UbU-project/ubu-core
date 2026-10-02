@@ -413,7 +413,7 @@ mod tests {
             operation: operation.to_owned(),
             target: target.to_owned(),
             payload: Some(json!("done")),
-            note: None,
+            provenance_kind: None,
         }
     }
 

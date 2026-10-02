@@ -338,3 +338,170 @@ fn routine_fixtures_round_trip_and_invalid_objectives_are_rejected() {
     )
     .is_err());
 }
+
+// ---- P1B-59: the UniverseState mutation, precondition and provenance fixtures.
+
+/// Every fixture in a directory of the canonical tree. These tests read whole
+/// directories, so they need the `schemas-ref` submodule: the placeholder tree
+/// holds single files for other types.
+fn fixture_values(directory: &str) -> Vec<(String, Value)> {
+    assert_eq!(
+        env!("UBU_SCHEMAS_REF_PRESENT"),
+        "1",
+        "the schemas-ref submodule is needed for {directory}; run `git submodule update --init`"
+    );
+    let mut fixtures: Vec<(String, Value)> = fs::read_dir(fixture_root().join(directory))
+        .unwrap_or_else(|err| panic!("failed to list {directory}: {err}"))
+        .map(|entry| entry.expect("directory entry").path())
+        .filter(|path| {
+            path.extension()
+                .is_some_and(|extension| extension == "json")
+        })
+        .map(|path| {
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            let json = fs::read_to_string(&path).expect("fixture is readable");
+            (
+                name,
+                serde_json::from_str(&json).expect("valid fixture json"),
+            )
+        })
+        .collect();
+    fixtures.sort_by(|a, b| a.0.cmp(&b.0));
+    assert!(!fixtures.is_empty(), "{directory} holds no fixture");
+    fixtures
+}
+
+fn recorded_at() -> ubu_core::UbuTimestamp {
+    ubu_core::UbuTimestamp::parse("2026-06-22T15:00:00Z").unwrap()
+}
+
+#[test]
+fn every_valid_mutation_fixture_round_trips_and_applies() {
+    use ubu_core::core::{apply_universe_mutations, UniverseMutation, UniverseState};
+    let fixtures = fixture_values("valid/core/universe-state-mutation");
+    let names: Vec<&str> = fixtures.iter().map(|(name, _)| name.as_str()).collect();
+    for expected in [
+        "set-numeric.json",
+        "set-numeric-measured.json",
+        "clear-numeric.json",
+    ] {
+        assert!(
+            names.contains(&expected),
+            "{expected} is missing from {names:?}"
+        );
+    }
+    let state = UniverseState::new(recorded_at(), "fixture compatibility");
+    for (name, original) in fixtures {
+        let parsed: UniverseMutation = serde_json::from_value(original.clone())
+            .unwrap_or_else(|err| panic!("{name} does not deserialize: {err}"));
+        assert_eq!(serde_json::to_value(&parsed).unwrap(), original, "{name}");
+        apply_universe_mutations(&state, &[parsed], recorded_at())
+            .unwrap_or_else(|err| panic!("{name} does not apply: {err}"));
+    }
+}
+
+#[test]
+fn every_invalid_mutation_fixture_is_refused_by_the_type_or_by_the_applicator() {
+    use ubu_core::core::{apply_universe_mutations, UniverseMutation, UniverseState};
+    let state = UniverseState::new(recorded_at(), "fixture compatibility");
+    for (name, original) in fixture_values("invalid/core/universe-state-mutation") {
+        let refused = match serde_json::from_value::<UniverseMutation>(original) {
+            Err(_) => true,
+            Ok(parsed) => apply_universe_mutations(&state, &[parsed], recorded_at()).is_err(),
+        };
+        assert!(
+            refused,
+            "{name} is invalid against the schema and ubu-core accepted it"
+        );
+    }
+}
+
+#[test]
+fn every_precondition_fixture_agrees_with_the_evaluator() {
+    use ubu_core::core::{evaluate_universe_precondition, UniversePrecondition, UniverseState};
+    let state = UniverseState::new(recorded_at(), "fixture compatibility");
+    for (name, original) in fixture_values("valid/core/precondition") {
+        let parsed: UniversePrecondition = serde_json::from_value(original.clone())
+            .unwrap_or_else(|err| panic!("{name} does not deserialize: {err}"));
+        assert_eq!(serde_json::to_value(&parsed).unwrap(), original, "{name}");
+        evaluate_universe_precondition(&state, &parsed)
+            .unwrap_or_else(|err| panic!("{name} is valid and the evaluator calls it {err}"));
+    }
+    for (name, original) in fixture_values("invalid/core/precondition") {
+        let refused = match serde_json::from_value::<UniversePrecondition>(original) {
+            Err(_) => true,
+            Ok(parsed) => evaluate_universe_precondition(&state, &parsed).is_err(),
+        };
+        assert!(
+            refused,
+            "{name} is invalid against the schema and ubu-core accepted it"
+        );
+    }
+}
+
+#[test]
+fn the_fact_provenance_of_a_universe_state_fixture_is_the_core_map() {
+    use ubu_core::core::{ProvenanceKind, UniverseFactProvenance};
+    let fixtures = fixture_values("valid/core/universe-state");
+    let (_, with_provenance) = fixtures
+        .iter()
+        .find(|(name, _)| name == "with-provenance.json")
+        .expect("with-provenance.json");
+    let original = with_provenance["fact_provenance"].clone();
+    let parsed: UniverseFactProvenance =
+        serde_json::from_value(original.clone()).expect("fact_provenance deserializes");
+    // One of its times is written `.250Z`, and this crate writes `.25Z`: the same
+    // instant, so the round trip is compared as values and not as text.
+    let rewritten: UniverseFactProvenance =
+        serde_json::from_value(serde_json::to_value(&parsed).unwrap()).unwrap();
+    assert_eq!(rewritten, parsed);
+    assert_eq!(parsed.len(), original.as_object().unwrap().len());
+    // The fixture shows each of the four kinds once.
+    let mut kinds: Vec<ProvenanceKind> = parsed.values().map(|entry| entry.kind).collect();
+    kinds.sort();
+    assert_eq!(
+        kinds,
+        vec![
+            ProvenanceKind::Asserted,
+            ProvenanceKind::Measured,
+            ProvenanceKind::Derived,
+            ProvenanceKind::Proposed
+        ]
+    );
+    // Every entry belongs to a value the fixture holds: none is stale.
+    for target in parsed.keys() {
+        let (collection, key) = target.split_once('.').expect("a full target");
+        assert!(
+            with_provenance[collection].get(key).is_some(),
+            "{target} has provenance and no value"
+        );
+    }
+
+    // An entry that is not a kind and a time and nothing else is refused by the
+    // type. A key that names no collection is refused only by the schema: the
+    // map's keys are strings here, and the applicator is what writes them.
+    for (name, invalid) in fixture_values("invalid/core/universe-state") {
+        let refused =
+            serde_json::from_value::<UniverseFactProvenance>(invalid["fact_provenance"].clone())
+                .is_err();
+        let schema_only = name.starts_with("provenance-key-");
+        assert_eq!(refused, !schema_only, "{name}");
+    }
+}
+
+#[test]
+fn the_universe_state_fixture_as_a_whole_is_not_the_core_type() {
+    // A drift this ticket found and did not close. The schema's `source_summary`
+    // and `confidence_summary` are objects; this crate's are a String and an
+    // optional String. So no UniverseState fixture round-trips as a whole, which
+    // is why the fixture's fact_provenance is checked by itself above. When the
+    // two are reconciled this test fails, and it should then become a round trip.
+    use ubu_core::core::UniverseState;
+    for (name, original) in fixture_values("valid/core/universe-state") {
+        assert!(original["source_summary"].is_object(), "{name}");
+        assert!(
+            serde_json::from_value::<UniverseState>(original).is_err(),
+            "{name}"
+        );
+    }
+}
