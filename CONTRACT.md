@@ -67,8 +67,11 @@ unknown fields, as `TaskEffect` does. A stored Task whose effects carry a
 namespace, so a key that began with its collection would hide its namespace
 from the mode guard.
 
-**Known drift, not closed here.** The schema's `source_summary` and
-`confidence_summary` are objects. This crate's are a `String` and an optional
-`String`. No `UniverseState` fixture round-trips as a whole;
-`tests/schema_fixture_roundtrip.rs` pins that, and checks the fixture's
-`fact_provenance` by itself.
+**Whole-state fixture coverage, from P1B-60.** The canonical schema now agrees
+with this crate: `source_summary` is a required non-empty string and
+`confidence_summary` an optional nullable string. The canonical `roundtrip.json`
+fixture compares the entire deserialized and serialized UniverseState, including
+both summaries and per-fact provenance. Object-valued summaries are refused.
+No Rust domain type or runtime behavior changed. Compatibility claims apply only
+to types exercised by whole-fixture round trips; other coverage gaps are listed
+in the P1B-60 report, not silently fixed here.

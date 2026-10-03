@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- P1B-60 B: Pin the corrected UniverseState summary schemas. Replace the known-drift assertion with a whole canonical fixture round trip and reject object-valued summaries. Domain types and runtime behavior are unchanged.
+
 - P1B-59 B: A measured number is a first-class fact.
   - **Breaking:** `apply_universe_mutations` takes a third argument, the write time. `UniverseMutation` loses `note` and gains optional `provenance_kind`, and refuses unknown fields. `UniverseState` gains `fact_provenance`.
   - Two operations: `set_numeric` replaces a number and `clear_numeric` removes it. A number could previously only be moved by a difference from whatever was there, and never removed.

@@ -480,7 +480,7 @@ fn the_fact_provenance_of_a_universe_state_fixture_is_the_core_map() {
     // An entry that is not a kind and a time and nothing else is refused by the
     // type. A key that names no collection is refused only by the schema: the
     // map's keys are strings here, and the applicator is what writes them.
-    for (name, invalid) in fixture_values("invalid/core/universe-state") {
+    for (name, invalid) in fixture_values("invalid/core/universe-state").into_iter().filter(|(name, _)| name.starts_with("provenance-")) {
         let refused =
             serde_json::from_value::<UniverseFactProvenance>(invalid["fact_provenance"].clone())
                 .is_err();
@@ -490,18 +490,15 @@ fn the_fact_provenance_of_a_universe_state_fixture_is_the_core_map() {
 }
 
 #[test]
-fn the_universe_state_fixture_as_a_whole_is_not_the_core_type() {
-    // A drift this ticket found and did not close. The schema's `source_summary`
-    // and `confidence_summary` are objects; this crate's are a String and an
-    // optional String. So no UniverseState fixture round-trips as a whole, which
-    // is why the fixture's fact_provenance is checked by itself above. When the
-    // two are reconciled this test fails, and it should then become a round trip.
-    use ubu_core::core::UniverseState;
-    for (name, original) in fixture_values("valid/core/universe-state") {
-        assert!(original["source_summary"].is_object(), "{name}");
-        assert!(
-            serde_json::from_value::<UniverseState>(original).is_err(),
-            "{name}"
-        );
+fn universe_state_fixture_round_trips_whole() {
+    round_trip_fixture::<ubu_core::core::UniverseState>("valid/core/universe-state/roundtrip.json");
+}
+
+#[test]
+fn universe_state_refuses_object_summaries() {
+    for field in ["source-summary", "confidence-summary"] {
+        assert_fixture_rejected::<ubu_core::core::UniverseState>(&format!(
+            "invalid/core/universe-state/{field}-object.json"
+        ));
     }
 }
