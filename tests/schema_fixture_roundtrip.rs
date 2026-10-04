@@ -502,3 +502,21 @@ fn universe_state_refuses_object_summaries() {
         ));
     }
 }
+
+#[test]
+fn precondition_candidate_round_trips_whole_canonical_fixture() {
+    round_trip_fixture::<AdvisoryCandidate>("valid/core/advisory-candidate/proposed-precondition.json");
+}
+
+#[test]
+fn unknown_candidate_kind_is_refused() {
+    let path = resolve_fixture("valid/core/advisory-candidate/proposed-precondition.json");
+    let mut value: Value = serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
+    value["candidate_kind"] = serde_json::json!("synthetic_unknown_kind");
+    assert!(serde_json::from_value::<AdvisoryCandidate>(value).is_err());
+}
+
+#[test]
+fn replacement_precondition_candidate_round_trips_both_canonical_trees() {
+    round_trip_fixture::<AdvisoryCandidate>("valid/core/advisory-candidate/replacement-precondition.json");
+}

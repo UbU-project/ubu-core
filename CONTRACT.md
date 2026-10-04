@@ -75,3 +75,13 @@ both summaries and per-fact provenance. Object-valued summaries are refused.
 No Rust domain type or runtime behavior changed. Compatibility claims apply only
 to types exercised by whole-fixture round trips; other coverage gaps are listed
 in the P1B-60 report, not silently fixed here.
+
+## Precondition candidates
+
+P1B-61 adds `CandidateKind::Precondition`, serialized as `precondition`.
+It remains candidate state, separate from admitted objects. A whole canonical
+fixture round trips check the new kind, its tree-valued normalized proposal,
+and the existing/proposed tree pair for an explicit replacement;
+unknown candidate kinds remain refused. Schema-specific proposal validation is
+the producer/admission boundary’s responsibility; the candidate keeps its
+existing JSON-value proposal type. No predicate semantics change.

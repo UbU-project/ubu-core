@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Whole-candidate fixture coverage includes replacement preconditions and preserves both trees.
+
+- P1B-61 B: Add the precondition candidate kind, advance schemas-ref, and test whole canonical candidate round trips and unknown-kind refusal.
+
 - P1B-60 B: Pin the corrected UniverseState summary schemas. Replace the known-drift assertion with a whole canonical fixture round trip and reject object-valued summaries. Domain types and runtime behavior are unchanged.
 
 - P1B-59 B: A measured number is a first-class fact.

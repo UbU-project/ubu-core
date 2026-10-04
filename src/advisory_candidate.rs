@@ -59,6 +59,7 @@ pub enum CandidateKind {
     Preference,
     Decomposition,
     ClarificationQuestion,
+    Precondition,
 }
 
 #[non_exhaustive]
@@ -817,6 +818,7 @@ mod tests {
     #[test]
     fn candidate_vocabularies_have_the_documented_wire_spellings() {
         for (kind, wire) in [
+            (CandidateKind::Precondition, "precondition"),
             (CandidateKind::Tag, "tag"),
             (CandidateKind::Dependency, "dependency"),
             (CandidateKind::Preference, "preference"),
