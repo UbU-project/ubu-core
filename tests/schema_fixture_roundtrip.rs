@@ -15,7 +15,7 @@ use ubu_core::policy_summary::PolicySummary;
 use ubu_core::projection::ProjectionPreview;
 use ubu_core::store::{MutationEnvelope, RecalculationTrigger};
 use ubu_core::worker::{
-    GpuAdvisoryRequest, GpuAdvisoryResponse, LocalAdvisoryResult, LocalAdvisorySubmission,
+    LocalAdvisoryResult, LocalAdvisorySubmission,
 };
 use ubu_core::{AdvisoryCandidate, DeviceRegistration, SuppressionRecord};
 
@@ -113,8 +113,6 @@ fn round_trips_canonical_or_placeholder_fixtures() {
     round_trip_fixture::<RepairResponse>("valid/planning/repair-response/basic.json");
     round_trip_fixture::<RecalculationTrigger>("valid/store/recalculation-trigger/basic.json");
     round_trip_fixture::<ProjectionPreview>("valid/projection/projection-preview/basic.json");
-    round_trip_fixture::<GpuAdvisoryRequest>("valid/worker/gpu-advisory-request/basic.json");
-    round_trip_fixture::<GpuAdvisoryResponse>("valid/worker/gpu-advisory-response/basic.json");
     round_trip_fixture::<LocalAdvisorySubmission>(
         "valid/worker/local-advisory-submission/tag-proposal.json",
     );
@@ -537,4 +535,39 @@ fn universe_target_authority_round_trips_and_grants_only_proposals() {
     assert!(!authority.may_propose(ubu_core::CandidateKind::Tag));
     assert!(authority.granted.contains(&AdvisoryCapability::ProposeCandidate(ubu_core::CandidateKind::UniverseTarget)));
     assert_eq!(serde_json::to_value(authority).unwrap(), json);
+}
+
+#[test]
+fn worker_frames_and_provenance_are_actually_covered_by_whole_fixtures() {
+    use ubu_core::worker::{PlanningStreamFrame,EngineProvenance,validate_sequence};
+    for (name,value) in fixture_values("valid/worker/planning-stream-frame") {
+        let frame:PlanningStreamFrame=serde_json::from_value(value.clone()).unwrap();frame.validate().unwrap();
+        assert_eq!(serde_json::to_value(frame).unwrap(),value,"{name}");
+    }
+    for (name,value) in fixture_values("valid/worker/engine-provenance") {
+        let provenance:EngineProvenance=serde_json::from_value(value.clone()).unwrap();provenance.validate().unwrap();
+        assert_eq!(serde_json::to_value(provenance).unwrap(),value,"{name}");
+    }
+    for (_,value) in fixture_values("valid/worker/planning-frame-sequence") {let frames:Vec<PlanningStreamFrame>=serde_json::from_value(value).unwrap();validate_sequence(&frames).unwrap();}
+}
+#[test]
+fn invalid_worker_frames_sequences_and_provenance_are_refused() {
+    use ubu_core::worker::{PlanningStreamFrame,EngineProvenance,validate_sequence};
+    for (_,value) in fixture_values("invalid/worker/planning-stream-frame") {
+        assert!(serde_json::from_value::<PlanningStreamFrame>(value).is_err());
+    }
+    for (_,value) in fixture_values("invalid/worker/planning-frame-sequence") {
+        let frames:Vec<PlanningStreamFrame>=serde_json::from_value(value).unwrap();assert!(validate_sequence(&frames).is_err());
+    }
+    for (_,value) in fixture_values("invalid/worker/engine-provenance") {assert!(serde_json::from_value::<EngineProvenance>(value).is_err());}
+}
+#[test]
+fn provenance_all_optional_fields_round_trip_independently() {
+    use ubu_core::worker::EngineProvenance;
+    for field in ["framework","framework_version","device_summary","tolerance_profile"] {
+        let mut value=serde_json::to_value(EngineProvenance::cpu("synthetic-version")).unwrap();
+        value.as_object_mut().unwrap().remove("device_summary");
+        let bare:EngineProvenance=serde_json::from_value(value.clone()).unwrap();assert_eq!(serde_json::to_value(bare).unwrap(),value);
+        value[field]=serde_json::json!("synthetic-option");let parsed:EngineProvenance=serde_json::from_value(value.clone()).unwrap();assert_eq!(serde_json::to_value(parsed).unwrap(),value);
+    }
 }

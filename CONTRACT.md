@@ -10,7 +10,7 @@
 - License: MIT.
 - No cross-repo Rust dependency on other UbU crates.
 - No runtime behavior for storage, planning, GitHub APIs, HTTP, UI, Tauri, or GPU execution.
-- Canonical GPU advisory wire types live in `src/worker/gpu_advisory.rs`.
+- Canonical planning frame envelopes and engine provenance live in `src/worker/planning_worker.rs`; the kernel composes typed payloads.
 
 ## Compatibility
 
@@ -92,3 +92,16 @@ The handwritten candidate kind adds `UniverseTarget`, serialized as
 `universe_target`. Its canonical name-only fixtures are round-tripped whole.
 The schemas-ref pointer updates fixture compatibility input, not runtime enum
 validation. The existing whole-UniverseState fixture coverage remains.
+
+
+## P1B-70 frames and provenance
+
+The advice-shaped capacity/recommendation types are retired. PlanningStreamFrame
+mirrors the four design outcomes and validates shape, version and request identity.
+validate_sequence enforces zero-based increasing indices and one terminal outcome,
+including refusing duplicate final responses. EngineProvenance has exactly the
+design fields and closed enums, with a separate validate method for string and
+GPU-framework constraints. Core names no kernel request/response type and
+executes no worker. The approved legacy invocation version stays 0.1. Whole
+fixtures exercise every frame, both provenance fixtures, sequences and all
+invalid cases; optional provenance fields are tested independently.
