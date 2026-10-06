@@ -19,3 +19,7 @@
 ## 0.1.0
 
 - Initial Phase 1 Rust domain foundation scaffold.
+
+## P1B-67
+
+Add UniverseTarget to the handwritten advisory vocabulary and compatibility tests.

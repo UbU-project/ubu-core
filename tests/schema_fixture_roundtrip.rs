@@ -520,3 +520,21 @@ fn unknown_candidate_kind_is_refused() {
 fn replacement_precondition_candidate_round_trips_both_canonical_trees() {
     round_trip_fixture::<AdvisoryCandidate>("valid/core/advisory-candidate/replacement-precondition.json");
 }
+
+#[test]
+fn universe_target_candidates_round_trip_whole_canonical_fixtures() {
+    for file in ["universe-target-fact", "universe-target-number"] {
+        round_trip_fixture::<AdvisoryCandidate>(&format!("valid/core/advisory-candidate/{file}.json"));
+    }
+}
+
+#[test]
+fn universe_target_authority_round_trips_and_grants_only_proposals() {
+    use ubu_core::worker::{AdvisoryCapability, WorkerAuthority};
+    let json = serde_json::json!({"worker_id":"worker_018f3c8e9b2a7c4d8f1e2a3b4c5d6e7f","authority_source":"automation_worker","granted":[{"propose_candidate":"universe_target"}]});
+    let authority: WorkerAuthority = serde_json::from_value(json.clone()).unwrap();
+    assert!(authority.may_propose(ubu_core::CandidateKind::UniverseTarget));
+    assert!(!authority.may_propose(ubu_core::CandidateKind::Tag));
+    assert!(authority.granted.contains(&AdvisoryCapability::ProposeCandidate(ubu_core::CandidateKind::UniverseTarget)));
+    assert_eq!(serde_json::to_value(authority).unwrap(), json);
+}

@@ -368,6 +368,7 @@ mod tests {
             CandidateKind::Decomposition,
             CandidateKind::ClarificationQuestion,
             CandidateKind::Precondition,
+            CandidateKind::UniverseTarget,
         ] {
             assert!(!authority.may_propose(kind));
         }

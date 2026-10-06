@@ -85,3 +85,10 @@ and the existing/proposed tree pair for an explicit replacement;
 unknown candidate kinds remain refused. Schema-specific proposal validation is
 the producer/admission boundary’s responsibility; the candidate keeps its
 existing JSON-value proposal type. No predicate semantics change.
+
+## P1B-67: UniverseTarget
+
+The handwritten candidate kind adds `UniverseTarget`, serialized as
+`universe_target`. Its canonical name-only fixtures are round-tripped whole.
+The schemas-ref pointer updates fixture compatibility input, not runtime enum
+validation. The existing whole-UniverseState fixture coverage remains.
